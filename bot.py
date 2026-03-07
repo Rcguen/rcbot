@@ -2,6 +2,9 @@ import discord
 from deep_translator import GoogleTranslator
 import json
 import os
+import time
+from flask import Flask
+from threading import Thread
 
 TOKEN = os.getenv("TOKEN")
 
@@ -10,7 +13,21 @@ DEFAULT_PREFIX = "!"
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
+
 client = discord.Client(intents=intents)
+
+# --- Web server for Render ---
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "r.cBot is running!"
+
+def run_web():
+    app.run(host="0.0.0.0", port=10000)
+
+Thread(target=run_web).start()
+
 
 languages = {
     "en": "English",
@@ -25,6 +42,7 @@ stats = {"translations": 0}
 LANG_FILE = "user_languages.json"
 PREFIX_FILE = "user_prefixes.json"
 
+# Load data
 if os.path.exists(LANG_FILE):
     with open(LANG_FILE, "r") as f:
         user_languages = json.load(f)
@@ -37,6 +55,7 @@ if os.path.exists(PREFIX_FILE):
 else:
     user_prefixes = {}
 
+
 def save_data():
     with open(LANG_FILE, "w") as f:
         json.dump(user_languages, f)
@@ -48,7 +67,8 @@ def save_data():
 def translate_text(text, target):
     try:
         return GoogleTranslator(source="auto", target=target).translate(text)
-    except:
+    except Exception as e:
+        print("Translation error:", e)
         return None
 
 
@@ -65,6 +85,7 @@ async def on_message(message):
 
     user_id = str(message.author.id)
     content = message.content.strip()
+
     prefix = user_prefixes.get(user_id, DEFAULT_PREFIX)
 
     # HELP
@@ -76,38 +97,15 @@ async def on_message(message):
             color=0x00ffcc
         )
 
-        embed.add_field(
-            name="Translate",
-            value=f"`{prefix} <text>`",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Translate specific language",
-            value=f"`{prefix}translate <lang> <text>`",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Set language",
-            value=f"`{prefix}setlang <code>`",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Change prefix",
-            value=f"`{prefix}setprefix <symbol>`",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Other commands",
-            value=f"`{prefix}ping` `{prefix}languages` `{prefix}about` `{prefix}stats`",
-            inline=False
-        )
+        embed.add_field(name="Translate", value=f"`{prefix} <text>`", inline=False)
+        embed.add_field(name="Specific Language", value=f"`{prefix}translate <lang> <text>`", inline=False)
+        embed.add_field(name="Set Language", value=f"`{prefix}setlang <code>`", inline=False)
+        embed.add_field(name="Set Prefix", value=f"`{prefix}setprefix <symbol>`", inline=False)
+        embed.add_field(name="Other", value=f"`{prefix}ping` `{prefix}languages` `{prefix}stats`", inline=False)
 
         await message.channel.send(embed=embed)
         return
+
 
     # PING
     if content.startswith(prefix + "ping"):
@@ -115,20 +113,6 @@ async def on_message(message):
         await message.channel.send(f"🏓 Pong! {latency}ms")
         return
 
-    # ABOUT
-    if content.startswith(prefix + "about"):
-
-        embed = discord.Embed(
-            title="r.cBot",
-            description="Multilingual translator bot",
-            color=0x00ffcc
-        )
-
-        embed.add_field(name="Languages", value="Chinese, English, Japanese, Vietnamese, Filipino")
-        embed.add_field(name="Version", value="Pro")
-
-        await message.channel.send(embed=embed)
-        return
 
     # STATS
     if content.startswith(prefix + "stats"):
@@ -141,11 +125,11 @@ async def on_message(message):
         await message.channel.send(embed=embed)
         return
 
+
     # LANGUAGES
     if content.startswith(prefix + "languages"):
 
         text = ""
-
         for code, name in languages.items():
             text += f"{code} — {name}\n"
 
@@ -157,6 +141,7 @@ async def on_message(message):
 
         await message.channel.send(embed=embed)
         return
+
 
     # SET PREFIX
     if content.startswith(prefix + "setprefix"):
@@ -174,6 +159,7 @@ async def on_message(message):
 
         await message.channel.send(f"Prefix changed to `{new_prefix}`")
         return
+
 
     # SET LANGUAGE
     if content.startswith(prefix + "setlang"):
@@ -195,6 +181,7 @@ async def on_message(message):
 
         await message.channel.send(f"Language set to **{languages[lang]}**")
         return
+
 
     # TRANSLATE SPECIFIC LANGUAGE
     if content.startswith(prefix + "translate"):
@@ -219,14 +206,17 @@ async def on_message(message):
             )
 
             await message.channel.send(embed=embed)
+
             stats["translations"] += 1
 
         return
+
 
     # REPLY TRANSLATION
     if content.startswith(prefix) and message.reference:
 
         replied = await message.channel.fetch_message(message.reference.message_id)
+
         text = replied.content
 
         embed = discord.Embed(title="Reply Translation", color=0x00ffcc)
@@ -239,10 +229,13 @@ async def on_message(message):
                 embed.add_field(name=name, value=translated, inline=False)
 
         await message.channel.send(embed=embed)
+
         stats["translations"] += 1
+
         return
 
-    # PREFIX TRANSLATE
+
+    # QUICK PREFIX TRANSLATE
     if content.startswith(prefix + " "):
 
         text = content[len(prefix)+1:].strip()
@@ -270,6 +263,7 @@ async def on_reaction_add(reaction, user):
     if str(reaction.emoji) == "🌍":
 
         message = reaction.message
+
         text = message.content
 
         embed = discord.Embed(title="🌍 Reaction Translation", color=0x00ffcc)
@@ -286,4 +280,10 @@ async def on_reaction_add(reaction, user):
         stats["translations"] += 1
 
 
-client.run(TOKEN)
+# --- Auto restart protection ---
+while True:
+    try:
+        client.run(TOKEN)
+    except Exception as e:
+        print("Bot crashed:", e)
+        time.sleep(5)
