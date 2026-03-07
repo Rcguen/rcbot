@@ -11,6 +11,7 @@ from translator import translate_text
 from ui import TranslateView
 from globalchat import send_global
 from ocr_translate import translate_image
+from help_ui import HelpView
 
 # ---------------- DISCORD SETUP ----------------
 
@@ -88,7 +89,7 @@ async def on_message(message):
 
     content = message.content.strip()
 
-# ---------- PREFIX ----------
+# ---------- PREFIX COMMAND ----------
 
     if content.startswith(prefix + "prefix"):
 
@@ -110,38 +111,35 @@ async def on_message(message):
             prefixes.pop(user_id, None)
             save_json("data/user_prefixes.json", prefixes)
 
-            await message.channel.send(
-                "✅ Prefix reset to default `!`"
-            )
+            await message.channel.send("✅ Prefix reset to default `!`")
             return
 
         prefixes[user_id] = new_prefix
         save_json("data/user_prefixes.json", prefixes)
 
-        await message.channel.send(
-            f"✅ Your prefix is now `{new_prefix}`"
-        )
+        await message.channel.send(f"✅ Your prefix is now `{new_prefix}`")
         return
 
-# ---------- HELP ----------
+# ---------- HELP MENU ----------
 
     if content.startswith(prefix + "help"):
 
         embed = discord.Embed(
-            title="🤖 r.cBot Commands",
+            title="🤖 r.cBot Help",
+            description="Use the buttons below to explore commands.",
             color=0x00ffcc
         )
 
-        embed.add_field(name="Translate", value="/translate text language", inline=False)
-        embed.add_field(name="Set Language", value=f"{prefix}setlang vi", inline=False)
-        embed.add_field(name="Languages", value=f"{prefix}languages", inline=False)
-        embed.add_field(name="Prefix", value=f"{prefix}prefix ,", inline=False)
-        embed.add_field(name="Join Room", value=f"{prefix}joinroom", inline=False)
-        embed.add_field(name="Leave Room", value=f"{prefix}leaveroom", inline=False)
-        embed.add_field(name="Room Users", value=f"{prefix}roomusers", inline=False)
-        embed.add_field(name="Stats", value=f"{prefix}stats", inline=False)
+        embed.add_field(
+            name="Features",
+            value="🌍 Translation\n💬 Multilingual Rooms\n🔧 Custom Prefix\n📊 Stats",
+            inline=False
+        )
 
-        await message.channel.send(embed=embed)
+        embed.set_footer(text="r.cBot Multilingual System")
+
+        await message.channel.send(embed=embed, view=HelpView())
+
         return
 
 # ---------- STATS ----------
@@ -195,6 +193,7 @@ async def on_message(message):
         await message.channel.send(
             f"✅ Your language is now **{LANGUAGES[lang]}**"
         )
+
         return
 
 # ---------- LANGUAGES ----------
@@ -213,6 +212,7 @@ async def on_message(message):
         )
 
         await message.channel.send(embed=embed)
+
         return
 
 # ---------- JOIN ROOM ----------
@@ -224,6 +224,7 @@ async def on_message(message):
         await message.channel.send(
             f"🌍 {message.author.name} joined multilingual room."
         )
+
         return
 
 # ---------- LEAVE ROOM ----------
@@ -235,6 +236,7 @@ async def on_message(message):
         await message.channel.send(
             f"👋 {message.author.name} left multilingual room."
         )
+
         return
 
 # ---------- ROOM USERS ----------
@@ -250,6 +252,7 @@ async def on_message(message):
             text += f"<@{uid}> → {LANGUAGES.get(lang, lang)}\n"
 
         await message.channel.send(text)
+
         return
 
 # ---------- MULTILINGUAL ROOM ----------
