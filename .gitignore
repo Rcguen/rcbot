@@ -1,4 +1,4 @@
 .env
+__pycache__
 user_languages.json
 user_prefixes.json
-__pycache__
