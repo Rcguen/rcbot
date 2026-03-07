@@ -2,3 +2,4 @@
 __pycache__
 user_languages.json
 user_prefixes.json
+*.pyc

@@ -1,4 +1,8 @@
 discord.py
 deep-translator
-flask
 langdetect
+flask
+pillow
+pytesseract
+python-dotenv
+requests
