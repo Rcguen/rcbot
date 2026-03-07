@@ -1,5 +1,6 @@
 import discord
 from deep_translator import GoogleTranslator
+from langdetect import detect
 import json
 import os
 import time
@@ -7,16 +8,14 @@ from flask import Flask
 from threading import Thread
 
 TOKEN = os.getenv("TOKEN")
-
 DEFAULT_PREFIX = "!"
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
-
 client = discord.Client(intents=intents)
 
-# -------- Render Web Server --------
+# ---------- Render Web Server ----------
 app = Flask(__name__)
 
 @app.route("/")
@@ -28,10 +27,9 @@ def run_web():
     app.run(host="0.0.0.0", port=port)
 
 Thread(target=run_web).start()
-# -----------------------------------
+# --------------------------------------
 
 
-# Supported languages
 languages = {
     "en": "English",
     "zh-CN": "Chinese",
@@ -40,38 +38,44 @@ languages = {
     "tl": "Filipino"
 }
 
-stats = {"translations": 0}
+flag_languages = {
+    "🇯🇵": "ja",
+    "🇨🇳": "zh-CN",
+    "🇻🇳": "vi",
+    "🇺🇸": "en"
+}
 
 LANG_FILE = "user_languages.json"
 PREFIX_FILE = "user_prefixes.json"
+AUTO_FILE = "auto_translate.json"
 
 translation_cache = {}
 cooldowns = {}
-
-# -------- Load Data --------
-if os.path.exists(LANG_FILE):
-    with open(LANG_FILE, "r") as f:
-        user_languages = json.load(f)
-else:
-    user_languages = {}
-
-if os.path.exists(PREFIX_FILE):
-    with open(PREFIX_FILE, "r") as f:
-        user_prefixes = json.load(f)
-else:
-    user_prefixes = {}
-# ----------------------------
+stats = {"translations": 0}
 
 
-def save_data():
+def load_file(file):
+    if os.path.exists(file):
+        with open(file, "r") as f:
+            return json.load(f)
+    return {}
+
+user_languages = load_file(LANG_FILE)
+user_prefixes = load_file(PREFIX_FILE)
+auto_translate = load_file(AUTO_FILE)
+
+
+def save_all():
     with open(LANG_FILE, "w") as f:
         json.dump(user_languages, f)
 
     with open(PREFIX_FILE, "w") as f:
         json.dump(user_prefixes, f)
 
+    with open(AUTO_FILE, "w") as f:
+        json.dump(auto_translate, f)
 
-# -------- Translation Cache --------
+
 def translate_text(text, target):
 
     key = (text, target)
@@ -83,15 +87,12 @@ def translate_text(text, target):
         translated = GoogleTranslator(source="auto", target=target).translate(text)
         translation_cache[key] = translated
         return translated
-    except Exception as e:
-        print("Translation error:", e)
+    except:
         return None
-# -----------------------------------
 
 
 @client.event
 async def on_ready():
-
     print(f"r.cBot is online as {client.user}")
 
     await client.change_presence(
@@ -110,61 +111,71 @@ async def on_message(message):
 
     prefix = user_prefixes.get(user_id, DEFAULT_PREFIX)
 
-    # -------- Spam Protection --------
+    # -------- Cooldown --------
     if user_id in cooldowns:
         if time.time() - cooldowns[user_id] < 1.5:
             return
 
     cooldowns[user_id] = time.time()
-    # ---------------------------------
 
     # -------- HELP --------
     if content.startswith(prefix + "help"):
 
         embed = discord.Embed(
             title="🤖 r.cBot Help",
-            description="Translation bot commands",
+            description="A multilingual translation bot 🌍",
             color=0x00ffcc
         )
 
         embed.add_field(
-            name="Quick Translate",
-            value=f"`{prefix} hello world`",
+            name="🌍 Quick Translate",
+            value=(
+                f"`{prefix} hello world`\n"
+                "Translate text into all supported languages."
+            ),
             inline=False
         )
 
         embed.add_field(
-            name="Translate to specific language",
-            value=f"`{prefix}translate en 你好`",
+            name="🎯 Translate to Specific Language",
+            value=(
+                f"`{prefix}translate en 你好`\n"
+                "Translate text to a specific language."
+            ),
             inline=False
         )
 
         embed.add_field(
-            name="Reply translate",
-            value=f"Reply to a message with `{prefix}`",
+            name="⚙️ Set Your Language",
+            value=f"`{prefix}setlang en`",
             inline=False
         )
 
         embed.add_field(
-            name="Settings",
-            value=f"`{prefix}setlang <code>`\n`{prefix}setprefix <symbol>`",
+            name="🔄 Auto Translation",
+            value=f"`{prefix}autotranslate on/off`",
             inline=False
         )
 
         embed.add_field(
-            name="Other",
-            value=f"`{prefix}languages`\n`{prefix}ping`\n`{prefix}stats`",
+            name="🔧 Custom Prefix",
+            value=f"`{prefix}setprefix $`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="📊 Information",
+            value=f"`{prefix}stats`\n`{prefix}languages`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🌎 Emoji Translation",
+            value="React with 🇯🇵 🇨🇳 🇻🇳 🇺🇸 to translate.",
             inline=False
         )
 
         await message.channel.send(embed=embed)
-        return
-
-    # -------- PING --------
-    if content.startswith(prefix + "ping"):
-
-        latency = round(client.latency * 1000)
-        await message.channel.send(f"🏓 Pong! {latency}ms")
         return
 
     # -------- STATS --------
@@ -202,15 +213,12 @@ async def on_message(message):
         parts = content.split()
 
         if len(parts) < 2:
-            await message.channel.send("Usage: setprefix <symbol>")
             return
 
-        new_prefix = parts[1]
+        user_prefixes[user_id] = parts[1]
+        save_all()
 
-        user_prefixes[user_id] = new_prefix
-        save_data()
-
-        await message.channel.send(f"Prefix changed to `{new_prefix}`")
+        await message.channel.send(f"Prefix changed to `{parts[1]}`")
         return
 
     # -------- SET LANGUAGE --------
@@ -219,7 +227,6 @@ async def on_message(message):
         parts = content.split()
 
         if len(parts) < 2:
-            await message.channel.send("Usage: setlang en / zh-CN / ja / vi / tl")
             return
 
         lang = parts[1]
@@ -229,55 +236,28 @@ async def on_message(message):
             return
 
         user_languages[user_id] = lang
-        save_data()
+        save_all()
 
         await message.channel.send(f"Language set to **{languages[lang]}**")
         return
 
-    # -------- TRANSLATE SPECIFIC LANGUAGE --------
-    if content.startswith(prefix + "translate"):
+    # -------- AUTO TRANSLATE --------
+    if content.startswith(prefix + "autotranslate"):
 
-        parts = content.split(maxsplit=2)
+        parts = content.split()
 
-        if len(parts) < 3:
-            await message.channel.send("Usage: translate <lang> <text>")
+        if len(parts) < 2:
             return
 
-        lang = parts[1]
-        text = parts[2]
+        if parts[1] == "on":
+            auto_translate[user_id] = True
+            await message.channel.send("Auto translation enabled")
 
-        translated = translate_text(text, lang)
+        elif parts[1] == "off":
+            auto_translate[user_id] = False
+            await message.channel.send("Auto translation disabled")
 
-        if translated:
-
-            embed = discord.Embed(
-                title=f"{languages.get(lang, lang)}",
-                description=translated,
-                color=0x00ffcc
-            )
-
-            await message.channel.send(embed=embed)
-            stats["translations"] += 1
-
-        return
-
-    # -------- REPLY TRANSLATION --------
-    if content.startswith(prefix) and message.reference:
-
-        replied = await message.channel.fetch_message(message.reference.message_id)
-        text = replied.content
-
-        embed = discord.Embed(title="Reply Translation", color=0x00ffcc)
-
-        for code, name in languages.items():
-
-            translated = translate_text(text, code)
-
-            if translated and translated.lower() != text.lower():
-                embed.add_field(name=name, value=translated, inline=False)
-
-        await message.channel.send(embed=embed)
-        stats["translations"] += 1
+        save_all()
         return
 
     # -------- QUICK TRANSLATE --------
@@ -295,7 +275,53 @@ async def on_message(message):
                 embed.add_field(name=name, value=translated, inline=False)
 
         await message.channel.send(embed=embed)
+
         stats["translations"] += 1
+        return
+
+    # -------- REPLY TRANSLATION --------
+    if content.startswith(prefix) and message.reference:
+
+        replied = await message.channel.fetch_message(message.reference.message_id)
+        text = replied.content
+
+        embed = discord.Embed(title="🌍 Reply Translation", color=0x00ffcc)
+
+        for code, name in languages.items():
+
+            translated = translate_text(text, code)
+
+            if translated:
+                embed.add_field(name=name, value=translated, inline=False)
+
+        await message.channel.send(embed=embed)
+
+        stats["translations"] += 1
+        return
+
+    # -------- AUTO CONVERSATION TRANSLATION --------
+    if auto_translate.get(user_id):
+
+        target = user_languages.get(user_id)
+
+        if target:
+
+            try:
+                detected = detect(content)
+            except:
+                detected = None
+
+            if detected != target:
+
+                translated = translate_text(content, target)
+
+                if translated:
+
+                    await message.channel.send(
+                        f"🌍 **{languages[target]}:** {translated}"
+                    )
+
+                    stats["translations"] += 1
 
 
 @client.event
@@ -304,26 +330,23 @@ async def on_reaction_add(reaction, user):
     if user.bot:
         return
 
-    if str(reaction.emoji) == "🌍":
+    if reaction.emoji in flag_languages:
 
-        message = reaction.message
-        text = message.content
+        lang = flag_languages[reaction.emoji]
 
-        embed = discord.Embed(title="🌍 Reaction Translation", color=0x00ffcc)
+        text = reaction.message.content
 
-        for code, name in languages.items():
+        translated = translate_text(text, lang)
 
-            translated = translate_text(text, code)
+        if translated:
 
-            if translated and translated.lower() != text.lower():
-                embed.add_field(name=name, value=translated, inline=False)
+            await reaction.message.channel.send(
+                f"{reaction.emoji} **{languages[lang]}:** {translated}"
+            )
 
-        await message.channel.send(embed=embed)
-
-        stats["translations"] += 1
+            stats["translations"] += 1
 
 
-# -------- Auto Restart Protection --------
 while True:
     try:
         client.run(TOKEN)
