@@ -13,9 +13,10 @@ DEFAULT_PREFIX = "!"
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
+
 client = discord.Client(intents=intents)
 
-# ---------- Render Web Server ----------
+# -------- Render Web Server --------
 app = Flask(__name__)
 
 @app.route("/")
@@ -27,7 +28,7 @@ def run_web():
     app.run(host="0.0.0.0", port=port)
 
 Thread(target=run_web).start()
-# --------------------------------------
+# -----------------------------------
 
 
 languages = {
@@ -47,13 +48,15 @@ flag_languages = {
 
 LANG_FILE = "user_languages.json"
 PREFIX_FILE = "user_prefixes.json"
-AUTO_FILE = "auto_translate.json"
 
 translation_cache = {}
 cooldowns = {}
+translation_room = set()
+
 stats = {"translations": 0}
 
 
+# -------- Load Files --------
 def load_file(file):
     if os.path.exists(file):
         with open(file, "r") as f:
@@ -62,20 +65,16 @@ def load_file(file):
 
 user_languages = load_file(LANG_FILE)
 user_prefixes = load_file(PREFIX_FILE)
-auto_translate = load_file(AUTO_FILE)
 
-
-def save_all():
+def save_files():
     with open(LANG_FILE, "w") as f:
         json.dump(user_languages, f)
 
     with open(PREFIX_FILE, "w") as f:
         json.dump(user_prefixes, f)
 
-    with open(AUTO_FILE, "w") as f:
-        json.dump(auto_translate, f)
 
-
+# -------- Translation Cache --------
 def translate_text(text, target):
 
     key = (text, target)
@@ -93,10 +92,11 @@ def translate_text(text, target):
 
 @client.event
 async def on_ready():
+
     print(f"r.cBot is online as {client.user}")
 
     await client.change_presence(
-        activity=discord.Game("🌍 Translating languages | !help")
+        activity=discord.Game("🌍 Multilingual Chat | !help")
     )
 
 
@@ -123,37 +123,31 @@ async def on_message(message):
 
         embed = discord.Embed(
             title="🤖 r.cBot Help",
-            description="A multilingual translation bot 🌍",
+            description="Multilingual translation bot 🌍",
             color=0x00ffcc
         )
 
         embed.add_field(
             name="🌍 Quick Translate",
-            value=(
-                f"`{prefix} hello world`\n"
-                "Translate text into all supported languages."
-            ),
+            value=f"`{prefix} hello`",
             inline=False
         )
 
         embed.add_field(
-            name="🎯 Translate to Specific Language",
-            value=(
-                f"`{prefix}translate en 你好`\n"
-                "Translate text to a specific language."
-            ),
+            name="🎯 Translate Specific",
+            value=f"`{prefix}translate en 你好`",
             inline=False
         )
 
         embed.add_field(
-            name="⚙️ Set Your Language",
+            name="⚙️ Language",
             value=f"`{prefix}setlang en`",
             inline=False
         )
 
         embed.add_field(
-            name="🔄 Auto Translation",
-            value=f"`{prefix}autotranslate on/off`",
+            name="🌐 Multilingual Room",
+            value=f"`{prefix}joinroom`\n`{prefix}leaveroom`\n`{prefix}roomusers`",
             inline=False
         )
 
@@ -164,14 +158,14 @@ async def on_message(message):
         )
 
         embed.add_field(
-            name="📊 Information",
+            name="📊 Info",
             value=f"`{prefix}stats`\n`{prefix}languages`",
             inline=False
         )
 
         embed.add_field(
-            name="🌎 Emoji Translation",
-            value="React with 🇯🇵 🇨🇳 🇻🇳 🇺🇸 to translate.",
+            name="🌎 Emoji Translate",
+            value="React with 🇯🇵 🇨🇳 🇻🇳 🇺🇸",
             inline=False
         )
 
@@ -185,7 +179,7 @@ async def on_message(message):
 
         embed.add_field(name="Translations", value=str(stats["translations"]))
         embed.add_field(name="Servers", value=str(len(client.guilds)))
-        embed.add_field(name="Cache size", value=str(len(translation_cache)))
+        embed.add_field(name="Cache", value=str(len(translation_cache)))
 
         await message.channel.send(embed=embed)
         return
@@ -216,7 +210,7 @@ async def on_message(message):
             return
 
         user_prefixes[user_id] = parts[1]
-        save_all()
+        save_files()
 
         await message.channel.send(f"Prefix changed to `{parts[1]}`")
         return
@@ -236,28 +230,47 @@ async def on_message(message):
             return
 
         user_languages[user_id] = lang
-        save_all()
+        save_files()
 
         await message.channel.send(f"Language set to **{languages[lang]}**")
         return
 
-    # -------- AUTO TRANSLATE --------
-    if content.startswith(prefix + "autotranslate"):
+    # -------- JOIN ROOM --------
+    if content.startswith(prefix + "joinroom"):
 
-        parts = content.split()
+        translation_room.add(user_id)
 
-        if len(parts) < 2:
+        await message.channel.send(
+            f"🌍 {message.author.name} joined multilingual chat."
+        )
+        return
+
+    # -------- LEAVE ROOM --------
+    if content.startswith(prefix + "leaveroom"):
+
+        translation_room.discard(user_id)
+
+        await message.channel.send(
+            f"👋 {message.author.name} left multilingual chat."
+        )
+        return
+
+    # -------- ROOM USERS --------
+    if content.startswith(prefix + "roomusers"):
+
+        if not translation_room:
+            await message.channel.send("Room empty.")
             return
 
-        if parts[1] == "on":
-            auto_translate[user_id] = True
-            await message.channel.send("Auto translation enabled")
+        text = "🌍 **Multilingual Room Users**\n\n"
 
-        elif parts[1] == "off":
-            auto_translate[user_id] = False
-            await message.channel.send("Auto translation disabled")
+        for uid in translation_room:
 
-        save_all()
+            lang = user_languages.get(uid, "unknown")
+
+            text += f"<@{uid}> → {languages.get(lang, lang)}\n"
+
+        await message.channel.send(text)
         return
 
     # -------- QUICK TRANSLATE --------
@@ -271,26 +284,6 @@ async def on_message(message):
 
             translated = translate_text(text, code)
 
-            if translated and translated.lower() != text.lower():
-                embed.add_field(name=name, value=translated, inline=False)
-
-        await message.channel.send(embed=embed)
-
-        stats["translations"] += 1
-        return
-
-    # -------- REPLY TRANSLATION --------
-    if content.startswith(prefix) and message.reference:
-
-        replied = await message.channel.fetch_message(message.reference.message_id)
-        text = replied.content
-
-        embed = discord.Embed(title="🌍 Reply Translation", color=0x00ffcc)
-
-        for code, name in languages.items():
-
-            translated = translate_text(text, code)
-
             if translated:
                 embed.add_field(name=name, value=translated, inline=False)
 
@@ -299,29 +292,55 @@ async def on_message(message):
         stats["translations"] += 1
         return
 
-    # -------- AUTO CONVERSATION TRANSLATION --------
-    if auto_translate.get(user_id):
+    # -------- MULTILINGUAL ROOM OPTIMIZED --------
+    if user_id in translation_room:
 
-        target = user_languages.get(user_id)
+        try:
+            detected = detect(content)
+        except:
+            detected = None
 
-        if target:
+        target_languages = set()
 
-            try:
-                detected = detect(content)
-            except:
-                detected = None
+        for uid in translation_room:
 
-            if detected != target:
+            if uid == user_id:
+                continue
 
-                translated = translate_text(content, target)
+            lang = user_languages.get(uid)
 
-                if translated:
+            if lang and lang != detected:
+                target_languages.add(lang)
 
-                    await message.channel.send(
-                        f"🌍 **{languages[target]}:** {translated}"
-                    )
+        if not target_languages:
+            return
 
-                    stats["translations"] += 1
+        embed = discord.Embed(
+            title="🌍 Multilingual Translation",
+            color=0x00ffcc
+        )
+
+        for lang in target_languages:
+
+            translated = translate_text(content, lang)
+
+            if translated:
+
+                users = [
+                    f"<@{uid}>"
+                    for uid in translation_room
+                    if user_languages.get(uid) == lang
+                ]
+
+                embed.add_field(
+                    name=f"{languages[lang]} → {' '.join(users)}",
+                    value=translated,
+                    inline=False
+                )
+
+        await message.channel.send(embed=embed)
+
+        stats["translations"] += 1
 
 
 @client.event
@@ -347,6 +366,7 @@ async def on_reaction_add(reaction, user):
             stats["translations"] += 1
 
 
+# -------- Auto Restart --------
 while True:
     try:
         client.run(TOKEN)
