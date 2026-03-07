@@ -3,6 +3,7 @@ from discord import app_commands
 from flask import Flask
 from threading import Thread
 import os
+from langdetect import detect
 
 from config import *
 from storage import load_json, save_json
@@ -34,16 +35,18 @@ def run_web():
 
 Thread(target=run_web).start()
 
-# ---------------- LOAD DATA ----------------
+# ---------------- DATA ----------------
 
 users = load_json("data/user_languages.json")
 prefixes = load_json("data/user_prefixes.json")
 stats = load_json("data/stats.json")
 
+translation_room = set()
+
 if "translations" not in stats:
     stats["translations"] = 0
 
-# ---------------- READY EVENT ----------------
+# ---------------- READY ----------------
 
 @client.event
 async def on_ready():
@@ -81,12 +84,11 @@ async def on_message(message):
 
     user_id = str(message.author.id)
 
-    # get user prefix or default
     prefix = prefixes.get(user_id, DEFAULT_PREFIX)
 
     content = message.content.strip()
 
-    # ---------------- PREFIX COMMAND ----------------
+# ---------- PREFIX ----------
 
     if content.startswith(prefix + "prefix"):
 
@@ -96,7 +98,7 @@ async def on_message(message):
 
             await message.channel.send(
                 f"Current prefix: `{prefix}`\n"
-                f"Change it with `{prefix}prefix ,`\n"
+                f"Change with `{prefix}prefix ,`\n"
                 f"Reset with `{prefix}prefix reset`"
             )
             return
@@ -121,7 +123,7 @@ async def on_message(message):
         )
         return
 
-    # ---------------- HELP COMMAND ----------------
+# ---------- HELP ----------
 
     if content.startswith(prefix + "help"):
 
@@ -130,40 +132,19 @@ async def on_message(message):
             color=0x00ffcc
         )
 
-        embed.add_field(
-            name="Translate",
-            value="/translate text language",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Change Prefix",
-            value=f"{prefix}prefix ,",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Reset Prefix",
-            value=f"{prefix}prefix reset",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Stats",
-            value=f"{prefix}stats",
-            inline=False
-        )
-
-        embed.add_field(
-            name="Help",
-            value=f"{prefix}help",
-            inline=False
-        )
+        embed.add_field(name="Translate", value="/translate text language", inline=False)
+        embed.add_field(name="Set Language", value=f"{prefix}setlang vi", inline=False)
+        embed.add_field(name="Languages", value=f"{prefix}languages", inline=False)
+        embed.add_field(name="Prefix", value=f"{prefix}prefix ,", inline=False)
+        embed.add_field(name="Join Room", value=f"{prefix}joinroom", inline=False)
+        embed.add_field(name="Leave Room", value=f"{prefix}leaveroom", inline=False)
+        embed.add_field(name="Room Users", value=f"{prefix}roomusers", inline=False)
+        embed.add_field(name="Stats", value=f"{prefix}stats", inline=False)
 
         await message.channel.send(embed=embed)
         return
 
-    # ---------------- STATS COMMAND ----------------
+# ---------- STATS ----------
 
     if content.startswith(prefix + "stats"):
 
@@ -173,27 +154,150 @@ async def on_message(message):
         )
 
         embed.add_field(
-            name="Total Translations",
-            value=stats.get("translations", 0),
-            inline=False
+            name="Translations",
+            value=stats.get("translations", 0)
         )
 
         embed.add_field(
             name="Servers",
-            value=len(client.guilds),
-            inline=True
+            value=len(client.guilds)
         )
 
         embed.add_field(
             name="Users",
-            value=len(client.users),
-            inline=True
+            value=len(client.users)
         )
 
         await message.channel.send(embed=embed)
         return
 
-    # ---------------- IMAGE OCR ----------------
+# ---------- SET LANGUAGE ----------
+
+    if content.startswith(prefix + "setlang"):
+
+        parts = content.split()
+
+        if len(parts) < 2:
+            await message.channel.send(
+                f"Usage: {prefix}setlang <code>\nExample: {prefix}setlang vi"
+            )
+            return
+
+        lang = parts[1]
+
+        if lang not in LANGUAGES:
+            await message.channel.send("❌ Unsupported language")
+            return
+
+        users[user_id] = lang
+        save_json("data/user_languages.json", users)
+
+        await message.channel.send(
+            f"✅ Your language is now **{LANGUAGES[lang]}**"
+        )
+        return
+
+# ---------- LANGUAGES ----------
+
+    if content.startswith(prefix + "languages"):
+
+        text = ""
+
+        for code, name in LANGUAGES.items():
+            text += f"{code} — {name}\n"
+
+        embed = discord.Embed(
+            title="🌍 Supported Languages",
+            description=text,
+            color=0x00ffcc
+        )
+
+        await message.channel.send(embed=embed)
+        return
+
+# ---------- JOIN ROOM ----------
+
+    if content.startswith(prefix + "joinroom"):
+
+        translation_room.add(user_id)
+
+        await message.channel.send(
+            f"🌍 {message.author.name} joined multilingual room."
+        )
+        return
+
+# ---------- LEAVE ROOM ----------
+
+    if content.startswith(prefix + "leaveroom"):
+
+        translation_room.discard(user_id)
+
+        await message.channel.send(
+            f"👋 {message.author.name} left multilingual room."
+        )
+        return
+
+# ---------- ROOM USERS ----------
+
+    if content.startswith(prefix + "roomusers"):
+
+        text = "🌍 Multilingual Room Users\n\n"
+
+        for uid in translation_room:
+
+            lang = users.get(uid, "unknown")
+
+            text += f"<@{uid}> → {LANGUAGES.get(lang, lang)}\n"
+
+        await message.channel.send(text)
+        return
+
+# ---------- MULTILINGUAL ROOM ----------
+
+    if user_id in translation_room:
+
+        try:
+            detected = detect(content)
+        except:
+            detected = None
+
+        target_languages = set()
+
+        for uid in translation_room:
+
+            if uid == user_id:
+                continue
+
+            lang = users.get(uid)
+
+            if lang and lang != detected:
+                target_languages.add(lang)
+
+        if target_languages:
+
+            embed = discord.Embed(
+                title="🌍 Multilingual Translation",
+                color=0x00ffcc
+            )
+
+            for lang in target_languages:
+
+                translated = translate_text(content, lang)
+
+                if translated:
+
+                    embed.add_field(
+                        name=LANGUAGES[lang],
+                        value=translated,
+                        inline=False
+                    )
+
+            await message.channel.send(embed=embed)
+
+            stats["translations"] += 1
+            save_json("data/stats.json", stats)
+
+# ---------- IMAGE OCR ----------
 
     if message.attachments:
 
@@ -203,24 +307,21 @@ async def on_message(message):
 
         if result:
 
-            stats["translations"] += 1
-            save_json("data/stats.json", stats)
-
             await message.channel.send(
-                f"🖼 **Image Translation**\n{result}"
+                f"🖼 Image Translation\n{result}"
             )
 
-    # ---------------- DROPDOWN TRANSLATION ----------------
+# ---------- DROPDOWN TRANSLATE ----------
 
-    if len(message.content) < 200 and not content.startswith(prefix):
+    if len(content) < 200 and not content.startswith(prefix):
 
         await message.reply(
             "🌍 Translate message",
-            view=TranslateView(message.content),
+            view=TranslateView(content),
             mention_author=False
         )
 
-    # ---------------- GLOBAL CHAT ----------------
+# ---------- GLOBAL CHAT ----------
 
     await send_global(client, message)
 
