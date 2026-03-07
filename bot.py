@@ -31,6 +31,7 @@ Thread(target=run_web).start()
 # -----------------------------------
 
 
+# Supported languages
 languages = {
     "en": "English",
     "zh-CN": "Chinese",
@@ -44,6 +45,8 @@ stats = {"translations": 0}
 LANG_FILE = "user_languages.json"
 PREFIX_FILE = "user_prefixes.json"
 
+translation_cache = {}
+cooldowns = {}
 
 # -------- Load Data --------
 if os.path.exists(LANG_FILE):
@@ -68,17 +71,32 @@ def save_data():
         json.dump(user_prefixes, f)
 
 
+# -------- Translation Cache --------
 def translate_text(text, target):
+
+    key = (text, target)
+
+    if key in translation_cache:
+        return translation_cache[key]
+
     try:
-        return GoogleTranslator(source="auto", target=target).translate(text)
+        translated = GoogleTranslator(source="auto", target=target).translate(text)
+        translation_cache[key] = translated
+        return translated
     except Exception as e:
         print("Translation error:", e)
         return None
+# -----------------------------------
 
 
 @client.event
 async def on_ready():
+
     print(f"r.cBot is online as {client.user}")
+
+    await client.change_presence(
+        activity=discord.Game("🌍 Translating languages | !help")
+    )
 
 
 @client.event
@@ -92,26 +110,59 @@ async def on_message(message):
 
     prefix = user_prefixes.get(user_id, DEFAULT_PREFIX)
 
+    # -------- Spam Protection --------
+    if user_id in cooldowns:
+        if time.time() - cooldowns[user_id] < 1.5:
+            return
+
+    cooldowns[user_id] = time.time()
+    # ---------------------------------
+
     # -------- HELP --------
     if content.startswith(prefix + "help"):
 
         embed = discord.Embed(
             title="🤖 r.cBot Help",
-            description="Commands list",
+            description="Translation bot commands",
             color=0x00ffcc
         )
 
-        embed.add_field(name="Translate", value=f"`{prefix} hello`", inline=False)
-        embed.add_field(name="Translate specific language", value=f"`{prefix}translate en 你好`", inline=False)
-        embed.add_field(name="Set language", value=f"`{prefix}setlang en`", inline=False)
-        embed.add_field(name="Change prefix", value=f"`{prefix}setprefix $`", inline=False)
-        embed.add_field(name="Other", value=f"`{prefix}ping` `{prefix}languages` `{prefix}stats`", inline=False)
+        embed.add_field(
+            name="Quick Translate",
+            value=f"`{prefix} hello world`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="Translate to specific language",
+            value=f"`{prefix}translate en 你好`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="Reply translate",
+            value=f"Reply to a message with `{prefix}`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="Settings",
+            value=f"`{prefix}setlang <code>`\n`{prefix}setprefix <symbol>`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="Other",
+            value=f"`{prefix}languages`\n`{prefix}ping`\n`{prefix}stats`",
+            inline=False
+        )
 
         await message.channel.send(embed=embed)
         return
 
     # -------- PING --------
     if content.startswith(prefix + "ping"):
+
         latency = round(client.latency * 1000)
         await message.channel.send(f"🏓 Pong! {latency}ms")
         return
@@ -123,6 +174,7 @@ async def on_message(message):
 
         embed.add_field(name="Translations", value=str(stats["translations"]))
         embed.add_field(name="Servers", value=str(len(client.guilds)))
+        embed.add_field(name="Cache size", value=str(len(translation_cache)))
 
         await message.channel.send(embed=embed)
         return
@@ -131,6 +183,7 @@ async def on_message(message):
     if content.startswith(prefix + "languages"):
 
         text = ""
+
         for code, name in languages.items():
             text += f"{code} — {name}\n"
 
@@ -266,10 +319,11 @@ async def on_reaction_add(reaction, user):
                 embed.add_field(name=name, value=translated, inline=False)
 
         await message.channel.send(embed=embed)
+
         stats["translations"] += 1
 
 
-# -------- Auto Restart --------
+# -------- Auto Restart Protection --------
 while True:
     try:
         client.run(TOKEN)
