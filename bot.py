@@ -28,12 +28,12 @@ tree = app_commands.CommandTree(client)
 # ---------------- WEB SERVER ----------------
 
 app = Flask(__name__, template_folder="dashboard/templates")
+app.secret_key = "rcbot_secret_key"
 
 @app.route("/health")
 def health():
     return "Bot running"
 
-# Register dashboard BEFORE server starts
 register_routes(app, client)
 
 def run_web():
@@ -47,6 +47,7 @@ Thread(target=run_web).start()
 users = load_json("data/user_languages.json")
 prefixes = load_json("data/user_prefixes.json")
 stats = load_json("data/stats.json")
+lang_stats = load_json("data/language_stats.json")
 
 translation_room = set()
 
@@ -76,6 +77,10 @@ async def translate_cmd(interaction: discord.Interaction, text: str, language: s
     stats["translations"] += 1
     save_json("data/stats.json", stats)
 
+    # language analytics
+    lang_stats[language] = lang_stats.get(language, 0) + 1
+    save_json("data/language_stats.json", lang_stats)
+
     await interaction.response.send_message(
         f"🌍 **{LANGUAGES.get(language, language)}**\n{translated}"
     )
@@ -93,7 +98,7 @@ async def on_message(message):
 
     prefix = prefixes.get(user_id, DEFAULT_PREFIX)
 
-    # ---------- SET CHANNEL ----------
+# ---------- SET CHANNEL ----------
 
     if content.startswith(prefix + "setchannel"):
 
@@ -102,12 +107,12 @@ async def on_message(message):
         await message.channel.send("✅ Bot enabled in this channel.")
         return
 
-    # ---------- CHANNEL RESTRICTION ----------
+# ---------- CHANNEL RESTRICTION ----------
 
     if not is_enabled(message.channel.id):
         return
 
-    # ---------- REMOVE CHANNEL ----------
+# ---------- REMOVE CHANNEL ----------
 
     if content.startswith(prefix + "removechannel"):
 
@@ -116,7 +121,7 @@ async def on_message(message):
         await message.channel.send("❌ Bot disabled in this channel.")
         return
 
-    # ---------- LIST CHANNELS ----------
+# ---------- LIST CHANNELS ----------
 
     if content.startswith(prefix + "channels"):
 
@@ -128,7 +133,7 @@ async def on_message(message):
         await message.channel.send(text)
         return
 
-    # ---------- PREFIX COMMAND ----------
+# ---------- PREFIX COMMAND ----------
 
     if content.startswith(prefix + "prefix"):
 
@@ -161,7 +166,7 @@ async def on_message(message):
         )
         return
 
-    # ---------- HELP ----------
+# ---------- HELP ----------
 
     if content.startswith(prefix + "help"):
 
@@ -180,7 +185,7 @@ async def on_message(message):
         await message.channel.send(embed=embed, view=HelpView())
         return
 
-    # ---------- STATS ----------
+# ---------- STATS ----------
 
     if content.startswith(prefix + "stats"):
 
@@ -196,7 +201,7 @@ async def on_message(message):
         await message.channel.send(embed=embed)
         return
 
-    # ---------- SET LANGUAGE ----------
+# ---------- SET LANGUAGE ----------
 
     if content.startswith(prefix + "setlang"):
 
@@ -222,25 +227,7 @@ async def on_message(message):
         )
         return
 
-    # ---------- LANGUAGES ----------
-
-    if content.startswith(prefix + "languages"):
-
-        text = ""
-
-        for code, name in LANGUAGES.items():
-            text += f"{code} — {name}\n"
-
-        embed = discord.Embed(
-            title="🌍 Supported Languages",
-            description=text,
-            color=0x00ffcc
-        )
-
-        await message.channel.send(embed=embed)
-        return
-
-    # ---------- JOIN ROOM ----------
+# ---------- JOIN ROOM ----------
 
     if content.startswith(prefix + "joinroom"):
 
@@ -251,31 +238,7 @@ async def on_message(message):
         )
         return
 
-    # ---------- LEAVE ROOM ----------
-
-    if content.startswith(prefix + "leaveroom"):
-
-        translation_room.discard(user_id)
-
-        await message.channel.send(
-            f"👋 {message.author.name} left multilingual room."
-        )
-        return
-
-    # ---------- ROOM USERS ----------
-
-    if content.startswith(prefix + "roomusers"):
-
-        text = "🌍 Multilingual Room Users\n\n"
-
-        for uid in translation_room:
-            lang = users.get(uid, "unknown")
-            text += f"<@{uid}> → {LANGUAGES.get(lang, lang)}\n"
-
-        await message.channel.send(text)
-        return
-
-    # ---------- MULTILINGUAL ROOM ----------
+# ---------- MULTILINGUAL ROOM ----------
 
     if user_id in translation_room:
 
@@ -315,12 +278,17 @@ async def on_message(message):
                         inline=False
                     )
 
+                    # analytics
+                    lang_stats[lang] = lang_stats.get(lang, 0) + 1
+
+            save_json("data/language_stats.json", lang_stats)
+
             await message.channel.send(embed=embed)
 
             stats["translations"] += 1
             save_json("data/stats.json", stats)
 
-    # ---------- IMAGE OCR ----------
+# ---------- IMAGE OCR ----------
 
     if message.attachments:
 
@@ -334,7 +302,7 @@ async def on_message(message):
                 f"🖼 Image Translation\n{result}"
             )
 
-    # ---------- DROPDOWN TRANSLATE ----------
+# ---------- DROPDOWN TRANSLATE ----------
 
     if len(content) < 200 and not content.startswith(prefix):
 
@@ -344,7 +312,7 @@ async def on_message(message):
             mention_author=False
         )
 
-    # ---------- GLOBAL CHAT ----------
+# ---------- GLOBAL CHAT ----------
 
     await send_global(client, message)
 
@@ -365,11 +333,12 @@ async def on_reaction_add(reaction, user):
             lang
         )
 
-        if translated:
+        lang_stats[lang] = lang_stats.get(lang, 0) + 1
+        save_json("data/language_stats.json", lang_stats)
 
-            await reaction.message.channel.send(
-                f"{reaction.emoji} **{LANGUAGES[lang]}**\n{translated}"
-            )
+        await reaction.message.channel.send(
+            f"{reaction.emoji} **{LANGUAGES[lang]}**\n{translated}"
+        )
 
 # ---------------- RUN BOT ----------------
 
