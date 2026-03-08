@@ -9,87 +9,119 @@
 
 <style>
 
+*{
+box-sizing:border-box;
+}
+
 body{
-background:#0f0f0f;
-color:white;
-font-family:Arial;
-text-align:center;
 margin:0;
+font-family:Arial;
+background:#0f1117;
+color:white;
+display:flex;
 }
 
-header{
-background:#1a1a1a;
+/* Sidebar */
+
+.sidebar{
+width:220px;
+background:#161b22;
+height:100vh;
 padding:20px;
-font-size:24px;
+position:fixed;
 }
 
-.container{
-width:90%;
-margin:auto;
-margin-top:30px;
+.sidebar h2{
+color:#00ffcc;
+margin-bottom:30px;
 }
+
+.sidebar a{
+display:block;
+color:#c9d1d9;
+text-decoration:none;
+padding:10px;
+border-radius:6px;
+margin-bottom:10px;
+}
+
+.sidebar a:hover{
+background:#21262d;
+}
+
+/* Main */
+
+.main{
+margin-left:220px;
+width:100%;
+padding:30px;
+}
+
+/* Cards */
 
 .cards{
-display:flex;
-justify-content:center;
-flex-wrap:wrap;
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
 gap:20px;
 }
 
 .card{
-background:#1c1c1c;
-padding:25px;
+background:#161b22;
+padding:20px;
 border-radius:10px;
-width:200px;
 box-shadow:0 0 10px rgba(0,0,0,0.4);
 }
 
 .value{
-font-size:30px;
+font-size:32px;
 color:#00ffcc;
 margin-top:10px;
 }
 
-.status-online{
-color:#00ff88;
-font-size:22px;
-}
-
-.status-offline{
-color:#ff4444;
-font-size:22px;
-}
+/* Chart */
 
 .chart-box{
-margin-top:50px;
-background:#1c1c1c;
-padding:30px;
+margin-top:40px;
+background:#161b22;
+padding:25px;
 border-radius:10px;
 }
 
-.analytics{
-margin-top:40px;
-background:#1c1c1c;
-padding:30px;
-border-radius:10px;
+/* Table */
+
+.table{
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
 }
+
+.table th{
+background:#21262d;
+padding:10px;
+}
+
+.table td{
+padding:10px;
+border-bottom:1px solid #30363d;
+}
+
+/* Channel control */
 
 .channel-box{
 margin-top:40px;
-background:#1c1c1c;
-padding:30px;
+background:#161b22;
+padding:25px;
 border-radius:10px;
 }
 
 input{
 padding:8px;
-border-radius:6px;
+border-radius:5px;
 border:none;
-margin-right:10px;
 }
 
 button{
-padding:8px 14px;
+padding:8px 12px;
 border:none;
 border-radius:6px;
 background:#00ffcc;
@@ -100,21 +132,32 @@ button:hover{
 background:#00d9ad;
 }
 
-.channel{
-margin-top:10px;
-}
-
 </style>
 
 </head>
 
 <body>
 
-<header>
-🤖 r.cBot Admin Dashboard
-</header>
+<!-- Sidebar -->
 
-<div class="container">
+<div class="sidebar">
+
+<h2>🤖 r.cBot</h2>
+
+<a href="#">Dashboard</a>
+<a href="#">Analytics</a>
+<a href="#">Channels</a>
+<a href="#">Settings</a>
+
+</div>
+
+<!-- Main -->
+
+<div class="main">
+
+<h1>Dashboard</h1>
+
+<!-- Stats Cards -->
 
 <div class="cards">
 
@@ -137,18 +180,16 @@ margin-top:10px;
 <h3>🟢 Bot Status</h3>
 
 {% if bot_status == "Online" %}
-
-<div class="status-online">Online</div>
-
+<div class="value">Online</div>
 {% else %}
-
-<div class="status-offline">Offline</div>
-
+<div class="value" style="color:#ff4444">Offline</div>
 {% endif %}
 
 </div>
 
 </div>
+
+<!-- Chart -->
 
 <div class="chart-box">
 
@@ -158,21 +199,33 @@ margin-top:10px;
 
 </div>
 
-<div class="analytics">
+<!-- Language Analytics -->
+
+<div class="chart-box">
 
 <h2>🌍 Language Analytics</h2>
 
-<ul>
+<table class="table">
+
+<tr>
+<th>Language</th>
+<th>Usage</th>
+</tr>
 
 {% for lang,count in languages.items() %}
 
-<li>{{ lang }} : {{ count }}</li>
+<tr>
+<td>{{ lang }}</td>
+<td>{{ count }}</td>
+</tr>
 
 {% endfor %}
 
-</ul>
+</table>
 
 </div>
+
+<!-- Channel Control -->
 
 <div class="channel-box">
 
@@ -190,11 +243,11 @@ margin-top:10px;
 
 {% for cid in channels %}
 
-<div class="channel">
+<div style="margin-top:10px">
 
 {{ cid }}
 
-<form action="/remove_channel" method="post" style="display:inline;">
+<form action="/remove_channel" method="post" style="display:inline">
 
 <input type="hidden" name="channel_id" value="{{ cid }}">
 
@@ -214,10 +267,8 @@ margin-top:10px;
 
 const ctx = document.getElementById("chart");
 
-new Chart(ctx, {
-
+new Chart(ctx,{
 type:"line",
-
 data:{
 labels:["1","2","3","4"],
 datasets:[{
@@ -228,29 +279,18 @@ backgroundColor:"rgba(0,255,204,0.2)",
 tension:0.4
 }]
 },
-
 options:{
 plugins:{
-legend:{
-labels:{
-color:"white"
-}
-}
+legend:{labels:{color:"white"}}
 },
 scales:{
-x:{
-ticks:{color:"white"}
-},
-y:{
-ticks:{color:"white"}
+x:{ticks:{color:"white"}},
+y:{ticks:{color:"white"}}
 }
 }
-}
-
 })
 
 </script>
 
 </body>
-
 </html>
