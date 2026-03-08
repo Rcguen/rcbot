@@ -8,27 +8,19 @@
 <style>
 
 body{
-font-family: Arial;
-background:#0f0f0f;
+background:#111;
 color:white;
+font-family:Arial;
 text-align:center;
-}
-
-.container{
-margin-top:40px;
 }
 
 .card{
 display:inline-block;
-background:#1c1c1c;
-padding:25px;
-margin:15px;
+background:#1e1e1e;
+padding:20px;
+margin:20px;
 border-radius:10px;
 width:200px;
-}
-
-h1{
-margin-bottom:40px;
 }
 
 .value{
@@ -44,8 +36,6 @@ color:#00ffcc;
 
 <h1>🤖 r.cBot Dashboard</h1>
 
-<div class="container">
-
 <div class="card">
 <h3>🌍 Translations</h3>
 <div class="value">{{ translations }}</div>
@@ -59,13 +49,6 @@ color:#00ffcc;
 <div class="card">
 <h3>👥 Users</h3>
 <div class="value">{{ users }}</div>
-</div>
-
-<div class="card">
-<h3>📡 Channels</h3>
-<div class="value">{{ channels }}</div>
-</div>
-
 </div>
 
 </body>

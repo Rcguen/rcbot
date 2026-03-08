@@ -33,6 +33,9 @@ app = Flask(__name__, template_folder="dashboard/templates")
 def health():
     return "Bot running"
 
+# Register dashboard BEFORE server starts
+register_routes(app, client)
+
 def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
@@ -59,8 +62,6 @@ async def on_ready():
 
     await tree.sync()
 
-    register_routes(app, client)
-
     await client.change_presence(
         activity=discord.Game("🌍 Translation Bot | !help")
     )
@@ -68,7 +69,6 @@ async def on_ready():
 # ---------------- SLASH TRANSLATE ----------------
 
 @tree.command(name="translate", description="Translate text")
-
 async def translate_cmd(interaction: discord.Interaction, text: str, language: str):
 
     translated = translate_text(text, language)
@@ -93,15 +93,13 @@ async def on_message(message):
 
     prefix = prefixes.get(user_id, DEFAULT_PREFIX)
 
-    # ---------- SET CHANNEL (ALWAYS ALLOWED) ----------
+    # ---------- SET CHANNEL ----------
 
     if content.startswith(prefix + "setchannel"):
 
         add_channel(message.channel.id)
 
-        await message.channel.send(
-            "✅ Bot enabled in this channel."
-        )
+        await message.channel.send("✅ Bot enabled in this channel.")
         return
 
     # ---------- CHANNEL RESTRICTION ----------
@@ -115,9 +113,7 @@ async def on_message(message):
 
         remove_channel(message.channel.id)
 
-        await message.channel.send(
-            "❌ Bot disabled in this channel."
-        )
+        await message.channel.send("❌ Bot disabled in this channel.")
         return
 
     # ---------- LIST CHANNELS ----------
@@ -154,9 +150,7 @@ async def on_message(message):
             prefixes.pop(user_id, None)
             save_json("data/user_prefixes.json", prefixes)
 
-            await message.channel.send(
-                "✅ Prefix reset to default `!`"
-            )
+            await message.channel.send("✅ Prefix reset to default `!`")
             return
 
         prefixes[user_id] = new_prefix
@@ -183,11 +177,7 @@ async def on_message(message):
             inline=False
         )
 
-        await message.channel.send(
-            embed=embed,
-            view=HelpView()
-        )
-
+        await message.channel.send(embed=embed, view=HelpView())
         return
 
     # ---------- STATS ----------
@@ -199,20 +189,9 @@ async def on_message(message):
             color=0x00ffcc
         )
 
-        embed.add_field(
-            name="Translations",
-            value=stats.get("translations", 0)
-        )
-
-        embed.add_field(
-            name="Servers",
-            value=len(client.guilds)
-        )
-
-        embed.add_field(
-            name="Users",
-            value=len(client.users)
-        )
+        embed.add_field(name="Translations", value=stats.get("translations", 0))
+        embed.add_field(name="Servers", value=len(client.guilds))
+        embed.add_field(name="Users", value=len(client.users))
 
         await message.channel.send(embed=embed)
         return
@@ -224,7 +203,6 @@ async def on_message(message):
         parts = content.split()
 
         if len(parts) < 2:
-
             await message.channel.send(
                 f"Usage: {prefix}setlang <code>\nExample: {prefix}setlang vi"
             )
@@ -291,9 +269,7 @@ async def on_message(message):
         text = "🌍 Multilingual Room Users\n\n"
 
         for uid in translation_room:
-
             lang = users.get(uid, "unknown")
-
             text += f"<@{uid}> → {LANGUAGES.get(lang, lang)}\n"
 
         await message.channel.send(text)

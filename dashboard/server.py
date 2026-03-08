@@ -12,16 +12,9 @@ def register_routes(app, client):
         except:
             stats = {"translations": 0}
 
-        try:
-            with open("data/channels.json") as f:
-                channels = json.load(f)
-        except:
-            channels = {}
-
         return render_template(
             "index.html",
             translations=stats.get("translations", 0),
             servers=len(client.guilds),
-            users=len(client.users),
-            channels=len(channels)
+            users=len(client.users)
         )
