@@ -23,7 +23,8 @@ from features.music import (
     leave_channel,
     show_queue,
     shuffle_queue,
-    set_volume
+    set_volume,
+    register_events as register_music_events,
 )
 
 from dashboard.server import register_routes
@@ -36,6 +37,7 @@ intents.voice_states = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+register_music_events(client)
 
 # ---------------- WEB SERVER ----------------
 

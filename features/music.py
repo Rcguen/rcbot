@@ -274,3 +274,20 @@ async def set_volume(message, vol):
         vc.source.volume = vol / 100
 
     await message.channel.send(f"🔊 Volume {vol}%")
+
+
+# ---------- EVENT REGISTRATION ----------
+# Register events on the bot's client. Called from bot.py after client is created.
+# Do not use @client.event at module level here—client does not exist at import time.
+
+
+def register_events(client):
+    @client.event
+    async def on_voice_state_update(member, before, after):
+        # Clear queue when bot is disconnected from voice
+        if member.id == client.user.id and before.channel and not after.channel:
+            guild_id = before.channel.guild.id
+            if guild_id in queues:
+                queues[guild_id].clear()
+            if guild_id in autoplay:
+                del autoplay[guild_id]
