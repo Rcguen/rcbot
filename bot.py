@@ -14,6 +14,17 @@ from globalchat import send_global
 from ocr_translate import translate_image
 
 from features.channel_control import add_channel, remove_channel, is_enabled, get_channels
+from features.music import (
+    play_song,
+    pause_music,
+    resume_music,
+    skip_music,
+    leave_channel,
+    show_queue,
+    shuffle_queue,
+    set_volume
+)
+
 from dashboard.server import register_routes
 
 # ---------------- DISCORD SETUP ----------------
@@ -77,7 +88,6 @@ async def translate_cmd(interaction: discord.Interaction, text: str, language: s
     stats["translations"] += 1
     save_json("data/stats.json", stats)
 
-    # language analytics
     lang_stats[language] = lang_stats.get(language, 0) + 1
     save_json("data/language_stats.json", lang_stats)
 
@@ -110,6 +120,75 @@ async def on_message(message):
 # ---------- CHANNEL RESTRICTION ----------
 
     if not is_enabled(message.channel.id):
+        return
+
+# ---------- MUSIC PLAY ----------
+
+    if content.startswith(prefix + "play"):
+
+        query = content[len(prefix)+5:]
+
+        if not query:
+            await message.channel.send("❌ Usage: !play <song>")
+            return
+
+        await play_song(message, query)
+        return
+
+# ---------- MUSIC QUEUE ----------
+
+    if content.startswith(prefix + "queue"):
+
+        await show_queue(message)
+        return
+
+# ---------- MUSIC SHUFFLE ----------
+
+    if content.startswith(prefix + "shuffle"):
+
+        await shuffle_queue(message)
+        return
+
+# ---------- MUSIC VOLUME ----------
+
+    if content.startswith(prefix + "volume"):
+
+        parts = content.split()
+
+        if len(parts) < 2:
+            return
+
+        vol = int(parts[1])
+
+        await set_volume(message, vol)
+        return
+
+# ---------- MUSIC PAUSE ----------
+
+    if content.startswith(prefix + "pause"):
+
+        await pause_music(message)
+        return
+
+# ---------- MUSIC RESUME ----------
+
+    if content.startswith(prefix + "resume"):
+
+        await resume_music(message)
+        return
+
+# ---------- MUSIC SKIP ----------
+
+    if content.startswith(prefix + "skip"):
+
+        await skip_music(message)
+        return
+
+# ---------- MUSIC LEAVE ----------
+
+    if content.startswith(prefix + "leave"):
+
+        await leave_channel(message)
         return
 
 # ---------- REMOVE CHANNEL ----------
@@ -178,7 +257,7 @@ async def on_message(message):
 
         embed.add_field(
             name="Features",
-            value="🌍 Translation\n💬 Multilingual Rooms\n🔧 Prefix System\n📊 Stats",
+            value="🌍 Translation\n🎵 Music\n💬 Multilingual Rooms\n🔧 Prefix System\n📊 Stats",
             inline=False
         )
 
@@ -278,7 +357,6 @@ async def on_message(message):
                         inline=False
                     )
 
-                    # analytics
                     lang_stats[lang] = lang_stats.get(lang, 0) + 1
 
             save_json("data/language_stats.json", lang_stats)
