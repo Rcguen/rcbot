@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: rcbot
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: TOKEN
+        sync: false
