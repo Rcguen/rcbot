@@ -237,6 +237,40 @@ async def autoplay_song(message):
 
 # ---------- COMMANDS ----------
 
+
+async def pause_music(message):
+    vc = message.guild.voice_client
+    if vc and vc.is_playing():
+        vc.pause()
+    await message.channel.send("⏸ Paused")
+
+
+async def resume_music(message):
+    vc = message.guild.voice_client
+    if vc and vc.is_paused():
+        vc.resume()
+    await message.channel.send("▶ Resumed")
+
+
+async def skip_music(message):
+    vc = message.guild.voice_client
+    if vc and vc.is_playing():
+        vc.stop()
+    await message.channel.send("⏭ Skipped")
+
+
+async def leave_channel(message):
+    vc = message.guild.voice_client
+    if vc:
+        await vc.disconnect()
+        guild_id = message.guild.id
+        if guild_id in queues:
+            queues[guild_id].clear()
+        if guild_id in autoplay:
+            del autoplay[guild_id]
+    await message.channel.send("👋 Left voice channel")
+
+
 async def show_queue(message):
 
     guild_id = message.guild.id
