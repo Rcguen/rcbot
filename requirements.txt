@@ -6,3 +6,4 @@ yt-dlp
 pynacl
 ffmpeg-python
 requests
+spotipy
