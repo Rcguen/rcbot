@@ -1,295 +1,353 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="vi">
 <head>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>r.cBot Dashboard</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
+    :root {
+        --text-main: #ffffff;
+        --text-muted: #b3b3b3;
+        --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        --danger: #ff4d4d;
+    }
 
-*{
-box-sizing:border-box;
-}
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Poppins', sans-serif;
+    }
 
-body{
-margin:0;
-font-family:Arial;
-background:#0f1117;
-color:white;
-display:flex;
-}
+    body {
+        /* Nền Gradient Tối */
+        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        background-attachment: fixed;
+        color: var(--text-main);
+        display: flex;
+        min-height: 100vh;
+    }
 
-/* Sidebar */
+    /* Lớp Kính Mờ Chung (Glassmorphism) */
+    .glass {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
 
-.sidebar{
-width:220px;
-background:#161b22;
-height:100vh;
-padding:20px;
-position:fixed;
-}
+    /* Sidebar */
+    .sidebar {
+        width: 260px;
+        position: fixed;
+        height: calc(100vh - 40px);
+        margin: 20px;
+        padding: 30px 20px;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+    }
 
-.sidebar h2{
-color:#00ffcc;
-margin-bottom:30px;
-}
+    .sidebar h2 {
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 600;
+        margin-bottom: 40px;
+        text-align: center;
+    }
 
-.sidebar a{
-display:block;
-color:#c9d1d9;
-text-decoration:none;
-padding:10px;
-border-radius:6px;
-margin-bottom:10px;
-}
+    .sidebar a {
+        color: var(--text-muted);
+        text-decoration: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+        font-weight: 400;
+    }
 
-.sidebar a:hover{
-background:#21262d;
-}
+    .sidebar a:hover, .sidebar a.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-main);
+        transform: translateX(5px);
+    }
 
-/* Main */
+    /* Main Area */
+    .main {
+        margin-left: 300px; /* Sidebar width + margin */
+        width: calc(100% - 300px);
+        padding: 20px 40px 40px 0;
+    }
 
-.main{
-margin-left:220px;
-width:100%;
-padding:30px;
-}
+    .header-title {
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 30px;
+        margin-top: 10px;
+    }
 
-/* Cards */
+    /* Cards */
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 25px;
+    }
 
-.cards{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:20px;
-}
+    .card {
+        padding: 25px;
+        border-radius: 20px;
+        transition: transform 0.3s ease;
+    }
 
-.card{
-background:#161b22;
-padding:20px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.4);
-}
+    .card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.08);
+    }
 
-.value{
-font-size:32px;
-color:#00ffcc;
-margin-top:10px;
-}
+    .card h3 {
+        font-size: 14px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
 
-/* Chart */
+    .value {
+        font-size: 38px;
+        font-weight: 600;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-.chart-box{
-margin-top:40px;
-background:#161b22;
-padding:25px;
-border-radius:10px;
-}
+    /* Sections / Tables */
+    .section-box {
+        margin-top: 40px;
+        padding: 30px;
+        border-radius: 20px;
+    }
 
-/* Table */
+    .section-box h2 {
+        font-size: 20px;
+        margin-bottom: 25px;
+        font-weight: 600;
+    }
 
-.table{
-width:100%;
-margin-top:20px;
-border-collapse:collapse;
-}
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-.table th{
-background:#21262d;
-padding:10px;
-}
+    .table th {
+        text-align: left;
+        color: var(--text-muted);
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-.table td{
-padding:10px;
-border-bottom:1px solid #30363d;
-}
+    .table td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
 
-/* Channel control */
+    /* Inputs & Buttons */
+    .form-group {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
 
-.channel-box{
-margin-top:40px;
-background:#161b22;
-padding:25px;
-border-radius:10px;
-}
+    input {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px 20px;
+        border-radius: 12px;
+        color: white;
+        flex: 1;
+        outline: none;
+        transition: 0.3s;
+    }
 
-input{
-padding:8px;
-border-radius:5px;
-border:none;
-}
+    input:focus {
+        border-color: #4facfe;
+        background: rgba(0, 0, 0, 0.4);
+    }
 
-button{
-padding:8px 12px;
-border:none;
-border-radius:6px;
-background:#00ffcc;
-cursor:pointer;
-}
+    button {
+        background: var(--accent-gradient);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+    }
 
-button:hover{
-background:#00d9ad;
-}
+    button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
+    }
 
+    button.btn-danger {
+        background: rgba(255, 77, 77, 0.1);
+        border: 1px solid var(--danger);
+        color: var(--danger);
+        box-shadow: none;
+        padding: 8px 15px;
+    }
+
+    button.btn-danger:hover {
+        background: var(--danger);
+        color: white;
+    }
+
+    .channel-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
 </style>
-
 </head>
-
 <body>
 
-<!-- Sidebar -->
-
-<div class="sidebar">
-
-<h2>🤖 r.cBot</h2>
-
-<a href="#">Dashboard</a>
-<a href="#">Analytics</a>
-<a href="#">Channels</a>
-<a href="#">Settings</a>
-
+<div class="sidebar glass">
+    <h2>🤖 r.cBot</h2>
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Analytics</a>
+    <a href="#">Channels</a>
+    <a href="#">Settings</a>
 </div>
-
-<!-- Main -->
 
 <div class="main">
+    <h1 class="header-title">Dashboard Overview</h1>
 
-<h1>Dashboard</h1>
+    <div class="cards">
+        <div class="card glass">
+            <h3>🌍 Translations</h3>
+            <div class="value">{{ translations }}</div>
+        </div>
+        <div class="card glass">
+            <h3>🖥 Servers</h3>
+            <div class="value">{{ servers }}</div>
+        </div>
+        <div class="card glass">
+            <h3>👥 Users</h3>
+            <div class="value">{{ users }}</div>
+        </div>
+        <div class="card glass">
+            <h3>🟢 Bot Status</h3>
+            {% if bot_status == "Online" %}
+            <div class="value" style="background: linear-gradient(135deg, #00b09b, #96c93d); -webkit-background-clip: text;">Online</div>
+            {% else %}
+            <div class="value" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); -webkit-background-clip: text;">Offline</div>
+            {% endif %}
+        </div>
+    </div>
 
-<!-- Stats Cards -->
+    <div class="section-box glass">
+        <h2>📈 Translation Activity</h2>
+        <canvas id="chart" height="80"></canvas>
+    </div>
 
-<div class="cards">
+    <div class="section-box glass">
+        <h2>🌍 Language Analytics</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Language</th>
+                    <th>Usage Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lang,count in languages.items() %}
+                <tr>
+                    <td>{{ lang }}</td>
+                    <td style="font-weight: 600;">{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-<div class="card">
-<h3>🌍 Translations</h3>
-<div class="value">{{ translations }}</div>
-</div>
+    <div class="section-box glass">
+        <h2>⚙ Channel Control</h2>
+        
+        <form action="/add_channel" method="post" class="form-group">
+            <input type="text" name="channel_id" placeholder="Enter Channel ID...">
+            <button type="submit">Enable Channel</button>
+        </form>
 
-<div class="card">
-<h3>🖥 Servers</h3>
-<div class="value">{{ servers }}</div>
-</div>
-
-<div class="card">
-<h3>👥 Users</h3>
-<div class="value">{{ users }}</div>
-</div>
-
-<div class="card">
-<h3>🟢 Bot Status</h3>
-
-{% if bot_status == "Online" %}
-<div class="value">Online</div>
-{% else %}
-<div class="value" style="color:#ff4444">Offline</div>
-{% endif %}
-
-</div>
-
-</div>
-
-<!-- Chart -->
-
-<div class="chart-box">
-
-<h2>📈 Translation Activity</h2>
-
-<canvas id="chart"></canvas>
-
-</div>
-
-<!-- Language Analytics -->
-
-<div class="chart-box">
-
-<h2>🌍 Language Analytics</h2>
-
-<table class="table">
-
-<tr>
-<th>Language</th>
-<th>Usage</th>
-</tr>
-
-{% for lang,count in languages.items() %}
-
-<tr>
-<td>{{ lang }}</td>
-<td>{{ count }}</td>
-</tr>
-
-{% endfor %}
-
-</table>
-
-</div>
-
-<!-- Channel Control -->
-
-<div class="channel-box">
-
-<h2>⚙ Channel Control</h2>
-
-<form action="/add_channel" method="post">
-
-<input type="text" name="channel_id" placeholder="Channel ID">
-
-<button type="submit">Enable Channel</button>
-
-</form>
-
-<h3>Enabled Channels</h3>
-
-{% for cid in channels %}
-
-<div style="margin-top:10px">
-
-{{ cid }}
-
-<form action="/remove_channel" method="post" style="display:inline">
-
-<input type="hidden" name="channel_id" value="{{ cid }}">
-
-<button>Remove</button>
-
-</form>
-
-</div>
-
-{% endfor %}
-
-</div>
+        <h3 style="font-size: 16px; margin: 25px 0 15px 0; color: var(--text-muted);">Enabled Channels</h3>
+        
+        {% for cid in channels %}
+        <div class="channel-item">
+            <span>{{ cid }}</span>
+            <form action="/remove_channel" method="post" style="margin: 0;">
+                <input type="hidden" name="channel_id" value="{{ cid }}">
+                <button class="btn-danger">Remove</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
 
 </div>
 
 <script>
+    // Chart.js Configuration for Glassmorphism Theme
+    const ctx = document.getElementById("chart").getContext('2d');
+    
+    // Gradient fill cho line chart
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(79, 172, 254, 0.4)');
+    gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
 
-const ctx = document.getElementById("chart");
-
-new Chart(ctx,{
-type:"line",
-data:{
-labels:["1","2","3","4"],
-datasets:[{
-label:"Translations",
-data:{{ chart_data }},
-borderColor:"#00ffcc",
-backgroundColor:"rgba(0,255,204,0.2)",
-tension:0.4
-}]
-},
-options:{
-plugins:{
-legend:{labels:{color:"white"}}
-},
-scales:{
-x:{ticks:{color:"white"}},
-y:{ticks:{color:"white"}}
-}
-}
-})
-
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], // Bạn có thể map label này qua Jinja
+            datasets: [{
+                label: "Translations",
+                data: {{ chart_data }},
+                borderColor: "#4facfe",
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: "#fff",
+                pointBorderColor: "#4facfe",
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: { color: "#b3b3b3" }
+                },
+                y: {
+                    grid: { color: "rgba(255, 255, 255, 0.05)", drawBorder: false },
+                    ticks: { color: "#b3b3b3" }
+                }
+            }
+        }
+    });
 </script>
 
 </body>
