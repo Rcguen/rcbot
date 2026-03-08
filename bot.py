@@ -14,6 +14,7 @@ from globalchat import send_global
 from ocr_translate import translate_image
 
 from features.channel_control import add_channel, remove_channel, is_enabled, get_channels
+from dashboard.server import register_routes
 
 # ---------------- DISCORD SETUP ----------------
 
@@ -24,13 +25,13 @@ intents.reactions = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-# ---------------- WEB SERVER (Render) ----------------
+# ---------------- WEB SERVER ----------------
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="dashboard/templates")
 
-@app.route("/")
-def home():
-    return "r.cBot running"
+@app.route("/health")
+def health():
+    return "Bot running"
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
@@ -58,11 +59,13 @@ async def on_ready():
 
     await tree.sync()
 
+    register_routes(app, client)
+
     await client.change_presence(
         activity=discord.Game("🌍 Translation Bot | !help")
     )
 
-# ---------------- SLASH COMMAND ----------------
+# ---------------- SLASH TRANSLATE ----------------
 
 @tree.command(name="translate", description="Translate text")
 
@@ -86,21 +89,11 @@ async def on_message(message):
         return
 
     user_id = str(message.author.id)
+    content = message.content.strip()
 
     prefix = prefixes.get(user_id, DEFAULT_PREFIX)
 
-    content = message.content.strip()
-
-# ---------- CHANNEL RESTRICTION ----------
-
-    channel_id = str(message.channel.id)
-
-    if not is_enabled(channel_id):
-
-        if not content.startswith(prefix + "setchannel"):
-            return
-
-# ---------- SET CHANNEL ----------
+    # ---------- SET CHANNEL (ALWAYS ALLOWED) ----------
 
     if content.startswith(prefix + "setchannel"):
 
@@ -111,7 +104,12 @@ async def on_message(message):
         )
         return
 
-# ---------- REMOVE CHANNEL ----------
+    # ---------- CHANNEL RESTRICTION ----------
+
+    if not is_enabled(message.channel.id):
+        return
+
+    # ---------- REMOVE CHANNEL ----------
 
     if content.startswith(prefix + "removechannel"):
 
@@ -122,7 +120,7 @@ async def on_message(message):
         )
         return
 
-# ---------- LIST CHANNELS ----------
+    # ---------- LIST CHANNELS ----------
 
     if content.startswith(prefix + "channels"):
 
@@ -132,10 +130,9 @@ async def on_message(message):
             text += f"<#{cid}>\n"
 
         await message.channel.send(text)
-
         return
 
-# ---------- PREFIX COMMAND ----------
+    # ---------- PREFIX COMMAND ----------
 
     if content.startswith(prefix + "prefix"):
 
@@ -157,7 +154,9 @@ async def on_message(message):
             prefixes.pop(user_id, None)
             save_json("data/user_prefixes.json", prefixes)
 
-            await message.channel.send("✅ Prefix reset to default `!`")
+            await message.channel.send(
+                "✅ Prefix reset to default `!`"
+            )
             return
 
         prefixes[user_id] = new_prefix
@@ -168,7 +167,7 @@ async def on_message(message):
         )
         return
 
-# ---------- HELP ----------
+    # ---------- HELP ----------
 
     if content.startswith(prefix + "help"):
 
@@ -184,11 +183,14 @@ async def on_message(message):
             inline=False
         )
 
-        await message.channel.send(embed=embed, view=HelpView())
+        await message.channel.send(
+            embed=embed,
+            view=HelpView()
+        )
 
         return
 
-# ---------- STATS ----------
+    # ---------- STATS ----------
 
     if content.startswith(prefix + "stats"):
 
@@ -213,16 +215,16 @@ async def on_message(message):
         )
 
         await message.channel.send(embed=embed)
-
         return
 
-# ---------- SET LANGUAGE ----------
+    # ---------- SET LANGUAGE ----------
 
     if content.startswith(prefix + "setlang"):
 
         parts = content.split()
 
         if len(parts) < 2:
+
             await message.channel.send(
                 f"Usage: {prefix}setlang <code>\nExample: {prefix}setlang vi"
             )
@@ -240,10 +242,9 @@ async def on_message(message):
         await message.channel.send(
             f"✅ Your language is now **{LANGUAGES[lang]}**"
         )
-
         return
 
-# ---------- LANGUAGES ----------
+    # ---------- LANGUAGES ----------
 
     if content.startswith(prefix + "languages"):
 
@@ -259,10 +260,9 @@ async def on_message(message):
         )
 
         await message.channel.send(embed=embed)
-
         return
 
-# ---------- JOIN ROOM ----------
+    # ---------- JOIN ROOM ----------
 
     if content.startswith(prefix + "joinroom"):
 
@@ -271,10 +271,9 @@ async def on_message(message):
         await message.channel.send(
             f"🌍 {message.author.name} joined multilingual room."
         )
-
         return
 
-# ---------- LEAVE ROOM ----------
+    # ---------- LEAVE ROOM ----------
 
     if content.startswith(prefix + "leaveroom"):
 
@@ -283,10 +282,9 @@ async def on_message(message):
         await message.channel.send(
             f"👋 {message.author.name} left multilingual room."
         )
-
         return
 
-# ---------- ROOM USERS ----------
+    # ---------- ROOM USERS ----------
 
     if content.startswith(prefix + "roomusers"):
 
@@ -299,10 +297,9 @@ async def on_message(message):
             text += f"<@{uid}> → {LANGUAGES.get(lang, lang)}\n"
 
         await message.channel.send(text)
-
         return
 
-# ---------- MULTILINGUAL ROOM ----------
+    # ---------- MULTILINGUAL ROOM ----------
 
     if user_id in translation_room:
 
@@ -347,7 +344,7 @@ async def on_message(message):
             stats["translations"] += 1
             save_json("data/stats.json", stats)
 
-# ---------- IMAGE OCR ----------
+    # ---------- IMAGE OCR ----------
 
     if message.attachments:
 
@@ -361,7 +358,7 @@ async def on_message(message):
                 f"🖼 Image Translation\n{result}"
             )
 
-# ---------- DROPDOWN TRANSLATE ----------
+    # ---------- DROPDOWN TRANSLATE ----------
 
     if len(content) < 200 and not content.startswith(prefix):
 
@@ -371,7 +368,7 @@ async def on_message(message):
             mention_author=False
         )
 
-# ---------- GLOBAL CHAT ----------
+    # ---------- GLOBAL CHAT ----------
 
     await send_global(client, message)
 

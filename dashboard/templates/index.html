@@ -1,16 +1,72 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+
 <title>r.cBot Dashboard</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#0f0f0f;
+color:white;
+text-align:center;
+}
+
+.container{
+margin-top:40px;
+}
+
+.card{
+display:inline-block;
+background:#1c1c1c;
+padding:25px;
+margin:15px;
+border-radius:10px;
+width:200px;
+}
+
+h1{
+margin-bottom:40px;
+}
+
+.value{
+font-size:30px;
+color:#00ffcc;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<h1>r.cBot Dashboard</h1>
+<h1>🤖 r.cBot Dashboard</h1>
 
-<h2>Bot Stats</h2>
+<div class="container">
 
-<p>Total Translations: {{ stats.translations }}</p>
+<div class="card">
+<h3>🌍 Translations</h3>
+<div class="value">{{ translations }}</div>
+</div>
+
+<div class="card">
+<h3>🖥 Servers</h3>
+<div class="value">{{ servers }}</div>
+</div>
+
+<div class="card">
+<h3>👥 Users</h3>
+<div class="value">{{ users }}</div>
+</div>
+
+<div class="card">
+<h3>📡 Channels</h3>
+<div class="value">{{ channels }}</div>
+</div>
+
+</div>
 
 </body>
 

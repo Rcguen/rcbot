@@ -1,19 +1,27 @@
-from flask import Flask, render_template
+from flask import render_template
 import json
 
-app = Flask(__name__)
+def register_routes(app, client):
 
-@app.route("/")
-def home():
+    @app.route("/")
+    def dashboard():
 
-    with open("data/stats.json") as f:
-        stats = json.load(f)
+        try:
+            with open("data/stats.json") as f:
+                stats = json.load(f)
+        except:
+            stats = {"translations": 0}
 
-    return render_template("index.html", stats=stats)
+        try:
+            with open("data/channels.json") as f:
+                channels = json.load(f)
+        except:
+            channels = {}
 
-def start_dashboard():
-
-    app.run(
-        host="0.0.0.0",
-        port=8080
-    )
+        return render_template(
+            "index.html",
+            translations=stats.get("translations", 0),
+            servers=len(client.guilds),
+            users=len(client.users),
+            channels=len(channels)
+        )
