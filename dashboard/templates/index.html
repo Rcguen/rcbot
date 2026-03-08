@@ -5,27 +5,48 @@
 
 <title>r.cBot Dashboard</title>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 
 body{
-background:#111;
+background:#0f0f0f;
 color:white;
 font-family:Arial;
 text-align:center;
 }
 
+.container{
+width:90%;
+margin:auto;
+}
+
+.cards{
+display:flex;
+justify-content:center;
+gap:20px;
+margin-top:30px;
+flex-wrap:wrap;
+}
+
 .card{
-display:inline-block;
-background:#1e1e1e;
-padding:20px;
-margin:20px;
+background:#1c1c1c;
+padding:25px;
 border-radius:10px;
 width:200px;
 }
 
 .value{
-font-size:30px;
+font-size:32px;
 color:#00ffcc;
+margin-top:10px;
+}
+
+.chart-box{
+margin-top:50px;
+background:#1c1c1c;
+padding:30px;
+border-radius:10px;
 }
 
 </style>
@@ -35,6 +56,10 @@ color:#00ffcc;
 <body>
 
 <h1>🤖 r.cBot Dashboard</h1>
+
+<div class="container">
+
+<div class="cards">
 
 <div class="card">
 <h3>🌍 Translations</h3>
@@ -51,6 +76,229 @@ color:#00ffcc;
 <div class="value">{{ users }}</div>
 </div>
 
-</body>
+</div>
 
+<div class="chart-box">
+
+<h2>📈 Translation Activity</h2>
+
+<canvas id="translationChart"></canvas>
+
+</div>
+
+</div>
+
+<script>
+
+const ctx = document.getElementById('translationChart');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ["1","2","3","4"],
+        datasets: [{
+            label: 'Translations',
+            data: {{ chart_data }},
+            borderColor: '#00ffcc',
+            backgroundColor: 'rgba(0,255,204,0.2)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                labels: {
+                    color: "white"
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: "white" }
+            },<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>r.cBot Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+background:#0f0f0f;
+color:white;
+font-family:Arial;
+text-align:center;
+}
+
+.container{
+width:90%;
+margin:auto;
+}
+
+.cards{
+display:flex;
+justify-content:center;
+gap:20px;
+margin-top:30px;
+flex-wrap:wrap;
+}
+
+.card{
+background:#1c1c1c;
+padding:25px;
+border-radius:10px;
+width:200px;
+}
+
+.value{
+font-size:32px;
+color:#00ffcc;
+margin-top:10px;
+}
+
+.chart-box{
+margin-top:50px;
+background:#1c1c1c;
+padding:30px;
+border-radius:10px;
+}
+
+.channel-box{
+margin-top:40px;
+background:#1c1c1c;
+padding:25px;
+border-radius:10px;
+}
+
+input{
+padding:8px;
+border-radius:5px;
+border:none;
+margin-right:10px;
+}
+
+button{
+padding:8px 12px;
+border:none;
+border-radius:5px;
+background:#00ffcc;
+cursor:pointer;
+}
+
+.channel{
+margin-top:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>🤖 r.cBot Admin Dashboard</h1>
+
+<div class="container">
+
+<div class="cards">
+
+<div class="card">
+<h3>🌍 Translations</h3>
+<div class="value">{{ translations }}</div>
+</div>
+
+<div class="card">
+<h3>🖥 Servers</h3>
+<div class="value">{{ servers }}</div>
+</div>
+
+<div class="card">
+<h3>👥 Users</h3>
+<div class="value">{{ users }}</div>
+</div>
+
+</div>
+
+<div class="chart-box">
+
+<h2>📈 Translation Activity</h2>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<div class="channel-box">
+
+<h2>⚙ Channel Control</h2>
+
+<form action="/add_channel" method="post">
+
+<input type="text" name="channel_id" placeholder="Channel ID">
+
+<button type="submit">Enable Channel</button>
+
+</form>
+
+<h3>Enabled Channels</h3>
+
+{% for cid in channels %}
+
+<div class="channel">
+
+{{ cid }}
+
+<form action="/remove_channel" method="post" style="display:inline;">
+<input type="hidden" name="channel_id" value="{{ cid }}">
+<button>Remove</button>
+</form>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+<script>
+
+const ctx = document.getElementById('chart');
+
+new Chart(ctx, {
+type: 'line',
+data: {
+labels: ["1","2","3","4"],
+datasets: [{
+label: "Translations",
+data: {{ chart_data }},
+borderColor: "#00ffcc",
+backgroundColor: "rgba(0,255,204,0.2)",
+tension: 0.4
+}]
+},
+options:{
+plugins:{legend:{labels:{color:"white"}}},
+scales:{
+x:{ticks:{color:"white"}},
+y:{ticks:{color:"white"}}
+}
+}
+})
+
+</script>
+
+</body>
+</html>
+            y: {
+                ticks: { color: "white" }
+            }
+        }
+    }
+});
+
+</script>
+
+</body>
 </html>
