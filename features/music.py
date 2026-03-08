@@ -274,32 +274,3 @@ async def set_volume(message, vol):
         vc.source.volume = vol / 100
 
     await message.channel.send(f"🔊 Volume {vol}%")
-
-# ---------- MESSAGE HANDLER ----------
-
-@client.event
-async def on_message(message):
-
-    if message.author.bot:
-        return
-
-    if message.content.startswith("!play"):
-        query = message.content.replace("!play ", "")
-        await play_song(message, query)
-
-    elif message.content == "!queue":
-        await show_queue(message)
-
-    elif message.content == "!shuffle":
-        await shuffle_queue(message)
-
-    elif message.content.startswith("!volume"):
-        vol = int(message.content.split(" ")[1])
-        await set_volume(message, vol)
-
-    elif message.content == "!autoplay":
-        guild_id = message.guild.id
-        autoplay[guild_id] = not autoplay.get(guild_id, False)
-        await message.channel.send(
-            f"🤖 Autoplay: {autoplay[guild_id]}"
-        )
