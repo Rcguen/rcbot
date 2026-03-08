@@ -9,9 +9,11 @@ from config import *
 from storage import load_json, save_json
 from translator import translate_text
 from ui import TranslateView
+from help_ui import HelpView
 from globalchat import send_global
 from ocr_translate import translate_image
-from help_ui import HelpView
+
+from features.channel_control import add_channel, remove_channel, is_enabled, get_channels
 
 # ---------------- DISCORD SETUP ----------------
 
@@ -60,7 +62,7 @@ async def on_ready():
         activity=discord.Game("🌍 Translation Bot | !help")
     )
 
-# ---------------- SLASH TRANSLATE ----------------
+# ---------------- SLASH COMMAND ----------------
 
 @tree.command(name="translate", description="Translate text")
 
@@ -88,6 +90,50 @@ async def on_message(message):
     prefix = prefixes.get(user_id, DEFAULT_PREFIX)
 
     content = message.content.strip()
+
+# ---------- CHANNEL RESTRICTION ----------
+
+    channel_id = str(message.channel.id)
+
+    if not is_enabled(channel_id):
+
+        if not content.startswith(prefix + "setchannel"):
+            return
+
+# ---------- SET CHANNEL ----------
+
+    if content.startswith(prefix + "setchannel"):
+
+        add_channel(message.channel.id)
+
+        await message.channel.send(
+            "✅ Bot enabled in this channel."
+        )
+        return
+
+# ---------- REMOVE CHANNEL ----------
+
+    if content.startswith(prefix + "removechannel"):
+
+        remove_channel(message.channel.id)
+
+        await message.channel.send(
+            "❌ Bot disabled in this channel."
+        )
+        return
+
+# ---------- LIST CHANNELS ----------
+
+    if content.startswith(prefix + "channels"):
+
+        text = "🌍 Enabled Channels\n\n"
+
+        for cid in get_channels():
+            text += f"<#{cid}>\n"
+
+        await message.channel.send(text)
+
+        return
 
 # ---------- PREFIX COMMAND ----------
 
@@ -117,26 +163,26 @@ async def on_message(message):
         prefixes[user_id] = new_prefix
         save_json("data/user_prefixes.json", prefixes)
 
-        await message.channel.send(f"✅ Your prefix is now `{new_prefix}`")
+        await message.channel.send(
+            f"✅ Your prefix is now `{new_prefix}`"
+        )
         return
 
-# ---------- HELP MENU ----------
+# ---------- HELP ----------
 
     if content.startswith(prefix + "help"):
 
         embed = discord.Embed(
             title="🤖 r.cBot Help",
-            description="Use the buttons below to explore commands.",
+            description="Use buttons below to navigate commands",
             color=0x00ffcc
         )
 
         embed.add_field(
             name="Features",
-            value="🌍 Translation\n💬 Multilingual Rooms\n🔧 Custom Prefix\n📊 Stats",
+            value="🌍 Translation\n💬 Multilingual Rooms\n🔧 Prefix System\n📊 Stats",
             inline=False
         )
-
-        embed.set_footer(text="r.cBot Multilingual System")
 
         await message.channel.send(embed=embed, view=HelpView())
 
@@ -167,6 +213,7 @@ async def on_message(message):
         )
 
         await message.channel.send(embed=embed)
+
         return
 
 # ---------- SET LANGUAGE ----------
