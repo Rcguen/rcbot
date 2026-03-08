@@ -7,10 +7,12 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 # ---------- CONFIG ----------
 
-DISCORD_TOKEN = "YOUR_DISCORD_BOT_TOKEN"
+import os
 
-SPOTIFY_CLIENT_ID = "ef09cb0e0faf45798431825e8ef75365"
-SPOTIFY_CLIENT_SECRET = "a6f92f69c0834177a784423b00d9c829"
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 sp = spotipy.Spotify(
     auth_manager=SpotifyClientCredentials(
@@ -32,13 +34,6 @@ FFMPEG_OPTIONS = {
 queues = {}
 volumes = {}
 autoplay = {}
-
-# ---------- BOT SETUP ----------
-
-intents = discord.Intents.default()
-intents.message_content = True
-
-client = discord.Client(intents=intents)
 
 # ---------- PLAYER UI ----------
 
@@ -308,11 +303,3 @@ async def on_message(message):
         await message.channel.send(
             f"🤖 Autoplay: {autoplay[guild_id]}"
         )
-
-# ---------- READY ----------
-
-@client.event
-async def on_ready():
-    print(f"Logged in as {client.user}")
-
-client.run(DISCORD_TOKEN)
