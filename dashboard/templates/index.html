@@ -11,7 +11,7 @@
 <style>
 
 :root{
---accent: #4facfe;
+--accent:#4facfe;
 --accent2:#00f2fe;
 --danger:#ff4d4d;
 --text:#ffffff;
@@ -32,7 +32,7 @@ display:flex;
 min-height:100vh;
 }
 
-/* GLASS STYLE */
+/* GLASS */
 
 .glass{
 background:rgba(255,255,255,0.05);
@@ -68,7 +68,7 @@ color:var(--muted);
 padding:12px 20px;
 border-radius:12px;
 margin-bottom:10px;
-transition:0.25s;
+transition:.25s;
 display:flex;
 align-items:center;
 gap:10px;
@@ -80,7 +80,7 @@ color:white;
 transform:translateX(6px);
 }
 
-/* USER PROFILE */
+/* USER */
 
 .user-box{
 margin-top:auto;
@@ -94,12 +94,6 @@ width:50px;
 height:50px;
 border-radius:50%;
 margin-bottom:8px;
-}
-
-.user-box span{
-display:block;
-font-size:14px;
-color:var(--muted);
 }
 
 /* MAIN */
@@ -127,7 +121,7 @@ gap:25px;
 .card{
 padding:25px;
 border-radius:20px;
-transition:0.3s;
+transition:.3s;
 }
 
 .card:hover{
@@ -205,7 +199,7 @@ border-radius:6px;
 background:linear-gradient(135deg,var(--accent2),var(--accent));
 }
 
-/* CHANNEL ITEMS */
+/* CHANNELS */
 
 .channel{
 display:flex;
@@ -232,7 +226,7 @@ border-radius:10px;
 background:linear-gradient(135deg,var(--accent2),var(--accent));
 color:white;
 cursor:pointer;
-transition:0.3s;
+transition:.3s;
 }
 
 button:hover{
@@ -243,6 +237,21 @@ transform:scale(1.05);
 background:rgba(255,0,0,0.1);
 border:1px solid var(--danger);
 color:var(--danger);
+}
+
+/* RESPONSIVE */
+
+@media(max-width:900px){
+
+.sidebar{
+display:none;
+}
+
+.main{
+margin-left:0;
+padding:25px;
+}
+
 }
 
 </style>
@@ -262,9 +271,10 @@ color:var(--danger);
 <div class="user-box">
 
 {% if user %}
-<img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png">
+<img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar or '0' }}.png">
 <b>{{ user.username }}</b>
-<span>Logged in</span>
+{% else %}
+<span>Guest</span>
 {% endif %}
 
 </div>
@@ -317,14 +327,18 @@ color:var(--danger);
 
 <h2>🌍 Language Analytics</h2>
 
+{% set max_val = languages.values()|max if languages else 1 %}
+
 {% for lang,count in languages.items() %}
+
+{% set percent = (count / max_val) * 100 %}
 
 <div class="lang-bar">
 
 <span>{{ lang }} ({{count}})</span>
 
 <div class="bar">
-<div class="bar-fill" style="width:{{count}}%"></div>
+<div class="bar-fill" style="width:{{percent}}%"></div>
 </div>
 
 </div>
@@ -337,7 +351,7 @@ color:var(--danger);
 
 <h2>⚙ Channel Control</h2>
 
-<form action="/add_channel" method="post" style="display:flex;gap:10px;margin-bottom:20px;">
+<form action="/add_channel" method="post" style="display:flex;gap:10px;margin-bottom:20px">
 
 <input type="text" name="channel_id" placeholder="Channel ID">
 <button type="submit">Enable</button>
@@ -365,6 +379,8 @@ color:var(--danger);
 
 <script>
 
+const chartData = {{ chart_data | tojson }};
+
 const ctx=document.getElementById("chart").getContext("2d");
 
 const gradient=ctx.createLinearGradient(0,0,0,400);
@@ -376,7 +392,7 @@ type:"line",
 data:{
 labels:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
 datasets:[{
-data:{{ chart_data }},
+data:chartData,
 borderColor:"#4facfe",
 backgroundColor:gradient,
 tension:.4,
@@ -392,10 +408,8 @@ y:{grid:{color:"rgba(255,255,255,0.05)"},ticks:{color:"#aaa"}}
 }
 });
 
-/* AUTO REFRESH */
-
 setInterval(()=>{
-location.reload();
+fetch("/health")
 },10000);
 
 </script>

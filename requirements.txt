@@ -1,8 +1,8 @@
 discord.py
-deep-translator
-langdetect
 flask
-pillow
-pytesseract
-python-dotenv
+langdetect
+deep-translator
+yt-dlp
+pynacl
+ffmpeg-python
 requests
