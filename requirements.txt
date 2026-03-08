@@ -2,8 +2,8 @@ discord.py
 flask
 langdetect
 deep-translator
+requests
 yt-dlp
 pynacl
-ffmpeg-python
-requests
 spotipy
+python-dotenv
