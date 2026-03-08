@@ -2,11 +2,12 @@ import discord
 import yt_dlp
 import asyncio
 import random
-import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
 # ---------- CONFIG ----------
+
+DISCORD_TOKEN = "YOUR_DISCORD_BOT_TOKEN"
 
 SPOTIFY_CLIENT_ID = "ef09cb0e0faf45798431825e8ef75365"
 SPOTIFY_CLIENT_SECRET = "a6f92f69c0834177a784423b00d9c829"
@@ -23,17 +24,28 @@ ydl_opts = {
     "quiet": True
 }
 
+FFMPEG_OPTIONS = {
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    "options": "-vn"
+}
+
 queues = {}
 volumes = {}
 autoplay = {}
+
+# ---------- BOT SETUP ----------
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+client = discord.Client(intents=intents)
 
 # ---------- PLAYER UI ----------
 
 class PlayerControls(discord.ui.View):
 
-    def __init__(self, message):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.message = message
 
     @discord.ui.button(label="⏸ Pause", style=discord.ButtonStyle.gray)
     async def pause(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -79,7 +91,7 @@ async def join_channel(message):
 
     return vc
 
-# ---------- PLAY ----------
+# ---------- PLAY SONG ----------
 
 async def play_song(message, query):
 
@@ -103,8 +115,7 @@ async def play_song(message, query):
     url = info["url"]
     title = info["title"]
 
-    queues.setdefault(guild_id, [])
-    queues[guild_id].append((url, title))
+    queues.setdefault(guild_id, []).append((url, title))
 
     await message.channel.send(f"🎶 Added: **{title}**")
 
@@ -122,6 +133,7 @@ async def play_next(message):
 
         if autoplay.get(guild_id):
             await autoplay_song(message)
+
         return
 
     url, title = queues[guild_id].pop(0)
@@ -129,7 +141,7 @@ async def play_next(message):
     volume = volumes.get(guild_id, 0.5)
 
     source = discord.PCMVolumeTransformer(
-        discord.FFmpegPCMAudio(url),
+        discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS),
         volume=volume
     )
 
@@ -140,7 +152,7 @@ async def play_next(message):
         )
     )
 
-    view = PlayerControls(message)
+    view = PlayerControls()
 
     await message.channel.send(
         f"🎵 Now playing **{title}**",
@@ -176,17 +188,30 @@ async def handle_spotify_playlist(message, url):
 
     results = sp.playlist_items(playlist_id)
 
-    for item in results["items"]:
-        track = item["track"]
-        name = track["name"]
-        artist = track["artists"][0]["name"]
+    while results:
 
-        search = f"{artist} {name}"
+        for item in results["items"]:
+            track = item["track"]
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch:{search}", download=False)["entries"][0]
+            if not track:
+                continue
 
-        queues.setdefault(guild_id, []).append((info["url"], info["title"]))
+            name = track["name"]
+            artist = track["artists"][0]["name"]
+
+            search = f"{artist} {name}"
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(
+                    f"ytsearch:{search}",
+                    download=False
+                )["entries"][0]
+
+            queues.setdefault(guild_id, []).append(
+                (info["url"], info["title"])
+            )
+
+        results = sp.next(results) if results["next"] else None
 
     await message.channel.send("🎵 Spotify playlist added.")
 
@@ -204,9 +229,14 @@ async def autoplay_song(message):
     query = "lofi hip hop"
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
+        info = ydl.extract_info(
+            f"ytsearch:{query}",
+            download=False
+        )["entries"][0]
 
-    queues.setdefault(guild_id, []).append((info["url"], info["title"]))
+    queues.setdefault(guild_id, []).append(
+        (info["url"], info["title"])
+    )
 
     await play_next(message)
 
@@ -249,3 +279,40 @@ async def set_volume(message, vol):
         vc.source.volume = vol / 100
 
     await message.channel.send(f"🔊 Volume {vol}%")
+
+# ---------- MESSAGE HANDLER ----------
+
+@client.event
+async def on_message(message):
+
+    if message.author.bot:
+        return
+
+    if message.content.startswith("!play"):
+        query = message.content.replace("!play ", "")
+        await play_song(message, query)
+
+    elif message.content == "!queue":
+        await show_queue(message)
+
+    elif message.content == "!shuffle":
+        await shuffle_queue(message)
+
+    elif message.content.startswith("!volume"):
+        vol = int(message.content.split(" ")[1])
+        await set_volume(message, vol)
+
+    elif message.content == "!autoplay":
+        guild_id = message.guild.id
+        autoplay[guild_id] = not autoplay.get(guild_id, False)
+        await message.channel.send(
+            f"🤖 Autoplay: {autoplay[guild_id]}"
+        )
+
+# ---------- READY ----------
+
+@client.event
+async def on_ready():
+    print(f"Logged in as {client.user}")
+
+client.run(DISCORD_TOKEN)

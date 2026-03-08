@@ -29,9 +29,12 @@ from dashboard.server import register_routes
 
 # ---------------- DISCORD SETUP ----------------
 
-intents = discord.Intents.default()
+intents = discord.Intents.none()
+intents.guilds = True
+intents.messages = True
 intents.message_content = True
 intents.reactions = True
+intents.voice_states = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -41,15 +44,19 @@ tree = app_commands.CommandTree(client)
 app = Flask(__name__, template_folder="dashboard/templates")
 app.secret_key = "rcbot_secret_key"
 
+
 @app.route("/health")
 def health():
     return "Bot running"
 
+
 register_routes(app, client)
+
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)
+
 
 Thread(target=run_web).start()
 
@@ -67,6 +74,7 @@ if "translations" not in stats:
 
 # ---------------- READY ----------------
 
+
 @client.event
 async def on_ready():
 
@@ -79,6 +87,7 @@ async def on_ready():
     )
 
 # ---------------- SLASH TRANSLATE ----------------
+
 
 @tree.command(name="translate", description="Translate text")
 async def translate_cmd(interaction: discord.Interaction, text: str, language: str):
@@ -96,6 +105,7 @@ async def translate_cmd(interaction: discord.Interaction, text: str, language: s
     )
 
 # ---------------- MESSAGE EVENT ----------------
+
 
 @client.event
 async def on_message(message):
@@ -158,7 +168,10 @@ async def on_message(message):
         if len(parts) < 2:
             return
 
-        vol = int(parts[1])
+        try:
+            vol = int(parts[1])
+        except:
+            return
 
         await set_volume(message, vol)
         return
@@ -370,7 +383,13 @@ async def on_message(message):
 
     if message.attachments:
 
-        url = message.attachments[0].url
+        file = message.attachments[0]
+
+        if file.size > 3_000_000:
+            await message.channel.send("⚠ Image too large for OCR.")
+            return
+
+        url = file.url
 
         result = translate_image(url, "en")
 
@@ -396,6 +415,7 @@ async def on_message(message):
 
 # ---------------- REACTION TRANSLATE ----------------
 
+
 @client.event
 async def on_reaction_add(reaction, user):
 
@@ -418,6 +438,10 @@ async def on_reaction_add(reaction, user):
             f"{reaction.emoji} **{LANGUAGES[lang]}**\n{translated}"
         )
 
-# ---------------- RUN BOT ----------------
+# ---------------- RUN BOT (AUTO RESTART) ----------------
 
-client.run(TOKEN)
+while True:
+    try:
+        client.run(TOKEN)
+    except Exception as e:
+        print("Bot crashed:", e)
