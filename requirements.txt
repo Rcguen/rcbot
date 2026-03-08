@@ -7,3 +7,5 @@ yt-dlp
 pynacl
 spotipy
 python-dotenv
+pytesseract
+Pillow
