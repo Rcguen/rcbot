@@ -4,350 +4,400 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>r.cBot Dashboard</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
 <style>
-    :root {
-        --text-main: #ffffff;
-        --text-muted: #b3b3b3;
-        --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-        --danger: #ff4d4d;
-    }
 
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family: 'Poppins', sans-serif;
-    }
+:root{
+--accent: #4facfe;
+--accent2:#00f2fe;
+--danger:#ff4d4d;
+--text:#ffffff;
+--muted:#b3b3b3;
+}
 
-    body {
-        /* Nền Gradient Tối */
-        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-        background-attachment: fixed;
-        color: var(--text-main);
-        display: flex;
-        min-height: 100vh;
-    }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
 
-    /* Lớp Kính Mờ Chung (Glassmorphism) */
-    .glass {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    }
+body{
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+display:flex;
+min-height:100vh;
+}
 
-    /* Sidebar */
-    .sidebar {
-        width: 260px;
-        position: fixed;
-        height: calc(100vh - 40px);
-        margin: 20px;
-        padding: 30px 20px;
-        border-radius: 20px;
-        display: flex;
-        flex-direction: column;
-    }
+/* GLASS STYLE */
 
-    .sidebar h2 {
-        background: var(--accent-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 600;
-        margin-bottom: 40px;
-        text-align: center;
-    }
+.glass{
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(12px);
+border:1px solid rgba(255,255,255,0.1);
+box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
 
-    .sidebar a {
-        color: var(--text-muted);
-        text-decoration: none;
-        padding: 12px 20px;
-        border-radius: 12px;
-        margin-bottom: 10px;
-        transition: all 0.3s ease;
-        font-weight: 400;
-    }
+/* SIDEBAR */
 
-    .sidebar a:hover, .sidebar a.active {
-        background: rgba(255, 255, 255, 0.1);
-        color: var(--text-main);
-        transform: translateX(5px);
-    }
+.sidebar{
+width:260px;
+margin:20px;
+border-radius:20px;
+padding:30px 20px;
+height:calc(100vh - 40px);
+position:fixed;
+display:flex;
+flex-direction:column;
+}
 
-    /* Main Area */
-    .main {
-        margin-left: 300px; /* Sidebar width + margin */
-        width: calc(100% - 300px);
-        padding: 20px 40px 40px 0;
-    }
+.sidebar h2{
+text-align:center;
+margin-bottom:35px;
+background:linear-gradient(135deg,var(--accent2),var(--accent));
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+}
 
-    .header-title {
-        font-size: 32px;
-        font-weight: 600;
-        margin-bottom: 30px;
-        margin-top: 10px;
-    }
+.sidebar a{
+text-decoration:none;
+color:var(--muted);
+padding:12px 20px;
+border-radius:12px;
+margin-bottom:10px;
+transition:0.25s;
+display:flex;
+align-items:center;
+gap:10px;
+}
 
-    /* Cards */
-    .cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 25px;
-    }
+.sidebar a:hover{
+background:rgba(255,255,255,0.1);
+color:white;
+transform:translateX(6px);
+}
 
-    .card {
-        padding: 25px;
-        border-radius: 20px;
-        transition: transform 0.3s ease;
-    }
+/* USER PROFILE */
 
-    .card:hover {
-        transform: translateY(-5px);
-        background: rgba(255, 255, 255, 0.08);
-    }
+.user-box{
+margin-top:auto;
+padding-top:20px;
+border-top:1px solid rgba(255,255,255,0.1);
+text-align:center;
+}
 
-    .card h3 {
-        font-size: 14px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 10px;
-    }
+.user-box img{
+width:50px;
+height:50px;
+border-radius:50%;
+margin-bottom:8px;
+}
 
-    .value {
-        font-size: 38px;
-        font-weight: 600;
-        background: var(--accent-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
+.user-box span{
+display:block;
+font-size:14px;
+color:var(--muted);
+}
 
-    /* Sections / Tables */
-    .section-box {
-        margin-top: 40px;
-        padding: 30px;
-        border-radius: 20px;
-    }
+/* MAIN */
 
-    .section-box h2 {
-        font-size: 20px;
-        margin-bottom: 25px;
-        font-weight: 600;
-    }
+.main{
+margin-left:300px;
+width:100%;
+padding:30px 40px;
+}
 
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-    }
+.header-title{
+font-size:32px;
+font-weight:600;
+margin-bottom:30px;
+}
 
-    .table th {
-        text-align: left;
-        color: var(--text-muted);
-        padding: 15px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
+/* CARDS */
 
-    .table td {
-        padding: 15px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:25px;
+}
 
-    /* Inputs & Buttons */
-    .form-group {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 25px;
-    }
+.card{
+padding:25px;
+border-radius:20px;
+transition:0.3s;
+}
 
-    input {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 12px 20px;
-        border-radius: 12px;
-        color: white;
-        flex: 1;
-        outline: none;
-        transition: 0.3s;
-    }
+.card:hover{
+transform:translateY(-5px);
+background:rgba(255,255,255,0.08);
+}
 
-    input:focus {
-        border-color: #4facfe;
-        background: rgba(0, 0, 0, 0.4);
-    }
+.card h3{
+font-size:14px;
+color:var(--muted);
+margin-bottom:10px;
+}
 
-    button {
-        background: var(--accent-gradient);
-        border: none;
-        padding: 12px 25px;
-        border-radius: 12px;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
-    }
+.value{
+font-size:36px;
+font-weight:600;
+background:linear-gradient(135deg,var(--accent2),var(--accent));
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+}
 
-    button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
-    }
+/* STATUS */
 
-    button.btn-danger {
-        background: rgba(255, 77, 77, 0.1);
-        border: 1px solid var(--danger);
-        color: var(--danger);
-        box-shadow: none;
-        padding: 8px 15px;
-    }
+.status-dot{
+width:12px;
+height:12px;
+border-radius:50%;
+display:inline-block;
+margin-right:6px;
+animation:pulse 1.5s infinite;
+}
 
-    button.btn-danger:hover {
-        background: var(--danger);
-        color: white;
-    }
+.online{background:#00ff88;}
+.offline{background:#ff4d4d;}
 
-    .channel-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 12px;
-        margin-bottom: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
+@keyframes pulse{
+0%{box-shadow:0 0 0 0 rgba(0,255,136,.7)}
+70%{box-shadow:0 0 0 10px rgba(0,255,136,0)}
+100%{box-shadow:0 0 0 0 rgba(0,255,136,0)}
+}
+
+/* SECTIONS */
+
+.section{
+margin-top:40px;
+padding:30px;
+border-radius:20px;
+}
+
+.section h2{
+margin-bottom:20px;
+}
+
+/* LANGUAGE BARS */
+
+.lang-bar{
+margin-bottom:15px;
+}
+
+.lang-bar span{
+font-size:13px;
+color:var(--muted);
+}
+
+.bar{
+height:8px;
+border-radius:6px;
+background:rgba(255,255,255,0.1);
+margin-top:5px;
+}
+
+.bar-fill{
+height:8px;
+border-radius:6px;
+background:linear-gradient(135deg,var(--accent2),var(--accent));
+}
+
+/* CHANNEL ITEMS */
+
+.channel{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:12px 18px;
+background:rgba(0,0,0,0.25);
+border-radius:10px;
+margin-bottom:10px;
+}
+
+input{
+padding:10px 15px;
+border-radius:10px;
+border:none;
+background:rgba(0,0,0,0.3);
+color:white;
+}
+
+button{
+padding:10px 20px;
+border:none;
+border-radius:10px;
+background:linear-gradient(135deg,var(--accent2),var(--accent));
+color:white;
+cursor:pointer;
+transition:0.3s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.btn-danger{
+background:rgba(255,0,0,0.1);
+border:1px solid var(--danger);
+color:var(--danger);
+}
+
 </style>
 </head>
+
 <body>
 
 <div class="sidebar glass">
-    <h2>🤖 r.cBot</h2>
-    <a href="#" class="active">Dashboard</a>
-    <a href="#">Analytics</a>
-    <a href="#">Channels</a>
-    <a href="#">Settings</a>
+
+<h2>🤖 r.cBot</h2>
+
+<a href="#">🏠 Dashboard</a>
+<a href="#">📊 Analytics</a>
+<a href="#">⚙ Channels</a>
+<a href="#">🔧 Settings</a>
+
+<div class="user-box">
+
+{% if user %}
+<img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png">
+<b>{{ user.username }}</b>
+<span>Logged in</span>
+{% endif %}
+
+</div>
+
 </div>
 
 <div class="main">
-    <h1 class="header-title">Dashboard Overview</h1>
 
-    <div class="cards">
-        <div class="card glass">
-            <h3>🌍 Translations</h3>
-            <div class="value">{{ translations }}</div>
-        </div>
-        <div class="card glass">
-            <h3>🖥 Servers</h3>
-            <div class="value">{{ servers }}</div>
-        </div>
-        <div class="card glass">
-            <h3>👥 Users</h3>
-            <div class="value">{{ users }}</div>
-        </div>
-        <div class="card glass">
-            <h3>🟢 Bot Status</h3>
-            {% if bot_status == "Online" %}
-            <div class="value" style="background: linear-gradient(135deg, #00b09b, #96c93d); -webkit-background-clip: text;">Online</div>
-            {% else %}
-            <div class="value" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); -webkit-background-clip: text;">Offline</div>
-            {% endif %}
-        </div>
-    </div>
+<h1 class="header-title">Dashboard Overview</h1>
 
-    <div class="section-box glass">
-        <h2>📈 Translation Activity</h2>
-        <canvas id="chart" height="80"></canvas>
-    </div>
+<div class="cards">
 
-    <div class="section-box glass">
-        <h2>🌍 Language Analytics</h2>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Language</th>
-                    <th>Usage Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lang,count in languages.items() %}
-                <tr>
-                    <td>{{ lang }}</td>
-                    <td style="font-weight: 600;">{{ count }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="card glass">
+<h3>🌍 Translations</h3>
+<div class="value">{{ translations }}</div>
+</div>
 
-    <div class="section-box glass">
-        <h2>⚙ Channel Control</h2>
-        
-        <form action="/add_channel" method="post" class="form-group">
-            <input type="text" name="channel_id" placeholder="Enter Channel ID...">
-            <button type="submit">Enable Channel</button>
-        </form>
+<div class="card glass">
+<h3>🖥 Servers</h3>
+<div class="value">{{ servers }}</div>
+</div>
 
-        <h3 style="font-size: 16px; margin: 25px 0 15px 0; color: var(--text-muted);">Enabled Channels</h3>
-        
-        {% for cid in channels %}
-        <div class="channel-item">
-            <span>{{ cid }}</span>
-            <form action="/remove_channel" method="post" style="margin: 0;">
-                <input type="hidden" name="channel_id" value="{{ cid }}">
-                <button class="btn-danger">Remove</button>
-            </form>
-        </div>
-        {% endfor %}
-    </div>
+<div class="card glass">
+<h3>👥 Users</h3>
+<div class="value">{{ users }}</div>
+</div>
+
+<div class="card glass">
+<h3>Bot Status</h3>
+
+{% if bot_status == "Online" %}
+<span class="status-dot online"></span> Online
+{% else %}
+<span class="status-dot offline"></span> Offline
+{% endif %}
+
+</div>
+
+</div>
+
+<div class="section glass">
+
+<h2>📈 Translation Activity</h2>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<div class="section glass">
+
+<h2>🌍 Language Analytics</h2>
+
+{% for lang,count in languages.items() %}
+
+<div class="lang-bar">
+
+<span>{{ lang }} ({{count}})</span>
+
+<div class="bar">
+<div class="bar-fill" style="width:{{count}}%"></div>
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<div class="section glass">
+
+<h2>⚙ Channel Control</h2>
+
+<form action="/add_channel" method="post" style="display:flex;gap:10px;margin-bottom:20px;">
+
+<input type="text" name="channel_id" placeholder="Channel ID">
+<button type="submit">Enable</button>
+
+</form>
+
+{% for cid in channels %}
+
+<div class="channel">
+
+<span>{{ cid }}</span>
+
+<form action="/remove_channel" method="post">
+<input type="hidden" name="channel_id" value="{{ cid }}">
+<button class="btn-danger">Remove</button>
+</form>
+
+</div>
+
+{% endfor %}
+
+</div>
 
 </div>
 
 <script>
-    // Chart.js Configuration for Glassmorphism Theme
-    const ctx = document.getElementById("chart").getContext('2d');
-    
-    // Gradient fill cho line chart
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(79, 172, 254, 0.4)');
-    gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
 
-    new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], // Bạn có thể map label này qua Jinja
-            datasets: [{
-                label: "Translations",
-                data: {{ chart_data }},
-                borderColor: "#4facfe",
-                backgroundColor: gradient,
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: "#fff",
-                pointBorderColor: "#4facfe",
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: {
-                    grid: { display: false, drawBorder: false },
-                    ticks: { color: "#b3b3b3" }
-                },
-                y: {
-                    grid: { color: "rgba(255, 255, 255, 0.05)", drawBorder: false },
-                    ticks: { color: "#b3b3b3" }
-                }
-            }
-        }
-    });
+const ctx=document.getElementById("chart").getContext("2d");
+
+const gradient=ctx.createLinearGradient(0,0,0,400);
+gradient.addColorStop(0,"rgba(79,172,254,.4)");
+gradient.addColorStop(1,"rgba(79,172,254,0)");
+
+new Chart(ctx,{
+type:"line",
+data:{
+labels:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+datasets:[{
+data:{{ chart_data }},
+borderColor:"#4facfe",
+backgroundColor:gradient,
+tension:.4,
+fill:true
+}]
+},
+options:{
+plugins:{legend:{display:false}},
+scales:{
+x:{grid:{display:false},ticks:{color:"#aaa"}},
+y:{grid:{color:"rgba(255,255,255,0.05)"},ticks:{color:"#aaa"}}
+}
+}
+});
+
+/* AUTO REFRESH */
+
+setInterval(()=>{
+location.reload();
+},10000);
+
 </script>
 
 </body>
